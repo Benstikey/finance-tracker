@@ -7,6 +7,7 @@ import {
   Landmark,
   Target,
   ArrowLeftRight,
+  Handshake,
   LogOut,
   Wallet,
 } from "lucide-react";
@@ -27,6 +28,7 @@ import { Button } from "@/components/ui/button";
 const navItems = [
   { title: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
   { title: "Accounts", href: "/accounts", icon: Landmark },
+  { title: "Loans", href: "/loans", icon: Handshake },
   { title: "Objectives", href: "/objectives", icon: Target },
   { title: "Currencies", href: "/currencies", icon: ArrowLeftRight },
 ];

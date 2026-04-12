@@ -116,6 +116,53 @@ export type Database = {
           },
         ];
       };
+      loans: {
+        Row: {
+          id: string;
+          user_id: string;
+          person: string;
+          description: string | null;
+          amount: number;
+          currency_id: string;
+          direction: "lent" | "borrowed";
+          settled: boolean;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          user_id: string;
+          person: string;
+          description?: string | null;
+          amount: number;
+          currency_id: string;
+          direction: "lent" | "borrowed";
+          settled?: boolean;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          user_id?: string;
+          person?: string;
+          description?: string | null;
+          amount?: number;
+          currency_id?: string;
+          direction?: "lent" | "borrowed";
+          settled?: boolean;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "loans_currency_id_fkey";
+            columns: ["currency_id"];
+            isOneToOne: false;
+            referencedRelation: "currencies";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
       transactions: {
         Row: {
           id: string;
@@ -164,5 +211,8 @@ export type Account = Database["public"]["Tables"]["accounts"]["Row"];
 export type Objective = Database["public"]["Tables"]["objectives"]["Row"];
 export type Transaction = Database["public"]["Tables"]["transactions"]["Row"];
 
+export type Loan = Database["public"]["Tables"]["loans"]["Row"];
+
 export type AccountWithCurrency = Account & { currencies: Currency };
 export type ObjectiveWithCurrency = Objective & { currencies: Currency };
+export type LoanWithCurrency = Loan & { currencies: Currency };

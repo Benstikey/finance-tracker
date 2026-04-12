@@ -13,11 +13,11 @@ import {
 } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
-import { Separator } from "@/components/ui/separator";
 import {
   TrendingUp,
   Euro,
-  HandCoins,
+  ArrowUpRight,
+  ArrowDownLeft,
   PiggyBank,
   Landmark,
   Wallet,
@@ -29,6 +29,7 @@ import {
 import type {
   AccountWithCurrency,
   ObjectiveWithCurrency,
+  LoanWithCurrency,
 } from "@/lib/types/database";
 
 const accountTypeIcons: Record<
@@ -38,13 +39,12 @@ const accountTypeIcons: Record<
   bank: Landmark,
   wallet: Wallet,
   cash: Banknote,
-  loan: Handshake,
 };
 
 export default async function DashboardPage() {
   const supabase = await createClient();
 
-  const [accountsRes, objectivesRes, rates] = await Promise.all([
+  const [accountsRes, objectivesRes, loansRes, rates] = await Promise.all([
     supabase
       .from("accounts")
       .select("*, currencies(*)")
@@ -53,6 +53,11 @@ export default async function DashboardPage() {
       .from("objectives")
       .select("*, currencies(*)")
       .order("priority", { ascending: true }),
+    supabase
+      .from("loans")
+      .select("*, currencies(*)")
+      .eq("settled", false)
+      .order("created_at", { ascending: false }),
     getExchangeRates("USD"),
   ]);
 
@@ -60,14 +65,13 @@ export default async function DashboardPage() {
     []) as unknown as AccountWithCurrency[];
   const objectives = (objectivesRes.data ||
     []) as unknown as ObjectiveWithCurrency[];
+  const loans = (loansRes.data || []) as unknown as LoanWithCurrency[];
 
+  // Calculate totals from accounts (no loans here anymore)
   let totalMAD = 0;
   let totalEUR = 0;
 
-  const regularAccounts = accounts.filter((a) => a.type !== "loan");
-  const loanAccounts = accounts.filter((a) => a.type === "loan");
-
-  for (const account of regularAccounts) {
+  for (const account of accounts) {
     totalMAD += convertCurrency(
       account.balance,
       account.currencies.code,
@@ -82,10 +86,23 @@ export default async function DashboardPage() {
     );
   }
 
-  let totalLoansMAD = 0;
-  for (const loan of loanAccounts) {
-    totalLoansMAD += convertCurrency(
-      loan.balance,
+  // Loans
+  const lentLoans = loans.filter((l) => l.direction === "lent");
+  const borrowedLoans = loans.filter((l) => l.direction === "borrowed");
+
+  let totalLentMAD = 0;
+  for (const loan of lentLoans) {
+    totalLentMAD += convertCurrency(
+      loan.amount,
+      loan.currencies.code,
+      "MAD",
+      rates
+    );
+  }
+  let totalBorrowedMAD = 0;
+  for (const loan of borrowedLoans) {
+    totalBorrowedMAD += convertCurrency(
+      loan.amount,
       loan.currencies.code,
       "MAD",
       rates
@@ -99,7 +116,7 @@ export default async function DashboardPage() {
         <p className="text-muted-foreground">Your financial overview</p>
       </div>
 
-      {/* Net Worth Cards — monochrome */}
+      {/* Net Worth Cards */}
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between pb-2">
@@ -129,36 +146,38 @@ export default async function DashboardPage() {
         </Card>
         <Card>
           <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardDescription>Outstanding Loans</CardDescription>
-            <HandCoins className="h-4 w-4 text-muted-foreground" />
+            <CardDescription>Owed to me</CardDescription>
+            <ArrowUpRight className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">
-              {formatCurrency(totalLoansMAD, "MAD")}
+              {formatCurrency(totalLentMAD, "MAD")}
             </div>
             <p className="text-xs text-muted-foreground mt-1">
-              Money to get back
+              {lentLoans.length} active loan{lentLoans.length !== 1 && "s"}
             </p>
           </CardContent>
         </Card>
         <Card>
           <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardDescription>Total (incl. Loans)</CardDescription>
-            <PiggyBank className="h-4 w-4 text-muted-foreground" />
+            <CardDescription>I owe</CardDescription>
+            <ArrowDownLeft className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">
-              {formatCurrency(totalMAD + totalLoansMAD, "MAD")}
+              {formatCurrency(totalBorrowedMAD, "MAD")}
             </div>
             <p className="text-xs text-muted-foreground mt-1">
-              Everything combined
+              {borrowedLoans.length} active loan
+              {borrowedLoans.length !== 1 && "s"}
             </p>
           </CardContent>
         </Card>
       </div>
 
-      {/* Accounts & Objectives */}
+      {/* Accounts, Loans, Objectives */}
       <div className="grid gap-4 md:grid-cols-2">
+        {/* Accounts */}
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
@@ -189,16 +208,12 @@ export default async function DashboardPage() {
                           <p className="text-sm font-medium leading-none">
                             {account.name}
                           </p>
-                          <div className="flex items-center gap-2 mt-1">
-                            <Badge variant="secondary" className="text-xs">
-                              {account.type}
-                            </Badge>
-                            {account.notes && (
-                              <span className="text-xs text-muted-foreground">
-                                {account.notes}
-                              </span>
-                            )}
-                          </div>
+                          <Badge
+                            variant="secondary"
+                            className="text-xs mt-1"
+                          >
+                            {account.type}
+                          </Badge>
                         </div>
                       </div>
                       <div className="text-right">
@@ -231,6 +246,7 @@ export default async function DashboardPage() {
           </CardContent>
         </Card>
 
+        {/* Objectives */}
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
@@ -287,33 +303,49 @@ export default async function DashboardPage() {
         </Card>
       </div>
 
-      {/* Loans Detail */}
-      {loanAccounts.length > 0 && (
+      {/* Active Loans */}
+      {loans.length > 0 && (
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <Handshake className="h-5 w-5" />
-              Outstanding Loans
+              Active Loans
             </CardTitle>
-            <CardDescription>Money people owe you</CardDescription>
+            <CardDescription>Unsettled loans</CardDescription>
           </CardHeader>
           <CardContent>
             <div className="space-y-3">
-              {loanAccounts.map((loan) => (
+              {loans.map((loan) => (
                 <div
                   key={loan.id}
                   className="flex items-center justify-between rounded-lg border p-3"
                 >
-                  <div>
-                    <p className="text-sm font-medium">{loan.name}</p>
-                    {loan.notes && (
-                      <p className="text-xs text-muted-foreground mt-0.5">
-                        {loan.notes}
-                      </p>
-                    )}
+                  <div className="flex items-center gap-3">
+                    <div className="flex h-9 w-9 items-center justify-center rounded-full bg-muted">
+                      {loan.direction === "lent" ? (
+                        <ArrowUpRight className="h-4 w-4" />
+                      ) : (
+                        <ArrowDownLeft className="h-4 w-4" />
+                      )}
+                    </div>
+                    <div>
+                      <p className="text-sm font-medium">{loan.person}</p>
+                      <div className="flex items-center gap-2 mt-0.5">
+                        <Badge variant="secondary" className="text-xs">
+                          {loan.direction === "lent"
+                            ? "owes me"
+                            : "I owe"}
+                        </Badge>
+                        {loan.description && (
+                          <span className="text-xs text-muted-foreground">
+                            {loan.description}
+                          </span>
+                        )}
+                      </div>
+                    </div>
                   </div>
                   <p className="font-mono font-bold">
-                    {formatCurrency(loan.balance, loan.currencies.code)}
+                    {formatCurrency(loan.amount, loan.currencies.code)}
                   </p>
                 </div>
               ))}

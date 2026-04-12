@@ -8,7 +8,6 @@ import {
   Landmark,
   Wallet,
   Banknote,
-  Handshake,
   Pencil,
   Trash2,
   Plus,
@@ -16,7 +15,6 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
 import {
   Card,
   CardContent,
@@ -46,7 +44,6 @@ const accountTypes = [
   { value: "bank", label: "Bank", icon: Landmark },
   { value: "wallet", label: "Digital Wallet", icon: Wallet },
   { value: "cash", label: "Cash", icon: Banknote },
-  { value: "loan", label: "Loan (owed to you)", icon: Handshake },
 ];
 
 const accountTypeIconMap: Record<
@@ -56,7 +53,6 @@ const accountTypeIconMap: Record<
   bank: Landmark,
   wallet: Wallet,
   cash: Banknote,
-  loan: Handshake,
 };
 
 function CurrencySelect({
@@ -196,28 +192,15 @@ function AccountForm({
         />
       </div>
 
-      {accountType === "loan" && (
-        <div className="space-y-2">
-          <Label htmlFor="notes">Who owes you?</Label>
-          <Textarea
-            id="notes"
-            name="notes"
-            defaultValue={account?.notes || ""}
-            placeholder="e.g. Ahmed — laptop purchase"
-          />
-        </div>
-      )}
-      {accountType !== "loan" && (
-        <div className="space-y-2">
-          <Label htmlFor="notes">Notes (optional)</Label>
-          <Input
-            id="notes"
-            name="notes"
-            defaultValue={account?.notes || ""}
-            placeholder="Any extra details"
-          />
-        </div>
-      )}
+      <div className="space-y-2">
+        <Label htmlFor="notes">Notes (optional)</Label>
+        <Input
+          id="notes"
+          name="notes"
+          defaultValue={account?.notes || ""}
+          placeholder="Any extra details"
+        />
+      </div>
 
       <Button type="submit" className="w-full h-11" disabled={loading}>
         {loading ? "Saving..." : account ? "Update Account" : "Add Account"}
