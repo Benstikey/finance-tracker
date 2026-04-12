@@ -8,6 +8,7 @@ import {
   Target,
   ArrowLeftRight,
   Handshake,
+  CalendarDays,
   LogOut,
   Wallet,
 } from "lucide-react";
@@ -29,6 +30,7 @@ const navItems = [
   { title: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
   { title: "Accounts", href: "/accounts", icon: Landmark },
   { title: "Loans", href: "/loans", icon: Handshake },
+  { title: "Cash Flow", href: "/cash-flow", icon: CalendarDays },
   { title: "Objectives", href: "/objectives", icon: Target },
   { title: "Currencies", href: "/currencies", icon: ArrowLeftRight },
 ];

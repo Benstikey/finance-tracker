@@ -163,6 +163,62 @@ export type Database = {
           },
         ];
       };
+      cash_flows: {
+        Row: {
+          id: string;
+          user_id: string;
+          name: string;
+          amount: number;
+          currency_id: string;
+          type: "income" | "expense";
+          frequency: "one_time" | "daily" | "weekly" | "monthly" | "yearly";
+          start_date: string;
+          end_date: string | null;
+          day_of_month: number | null;
+          notes: string | null;
+          active: boolean;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          user_id: string;
+          name: string;
+          amount: number;
+          currency_id: string;
+          type: "income" | "expense";
+          frequency: "one_time" | "daily" | "weekly" | "monthly" | "yearly";
+          start_date: string;
+          end_date?: string | null;
+          day_of_month?: number | null;
+          notes?: string | null;
+          active?: boolean;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          user_id?: string;
+          name?: string;
+          amount?: number;
+          currency_id?: string;
+          type?: "income" | "expense";
+          frequency?: "one_time" | "daily" | "weekly" | "monthly" | "yearly";
+          start_date?: string;
+          end_date?: string | null;
+          day_of_month?: number | null;
+          notes?: string | null;
+          active?: boolean;
+          created_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "cash_flows_currency_id_fkey";
+            columns: ["currency_id"];
+            isOneToOne: false;
+            referencedRelation: "currencies";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
       transactions: {
         Row: {
           id: string;
@@ -216,3 +272,6 @@ export type Loan = Database["public"]["Tables"]["loans"]["Row"];
 export type AccountWithCurrency = Account & { currencies: Currency };
 export type ObjectiveWithCurrency = Objective & { currencies: Currency };
 export type LoanWithCurrency = Loan & { currencies: Currency };
+
+export type CashFlow = Database["public"]["Tables"]["cash_flows"]["Row"];
+export type CashFlowWithCurrency = CashFlow & { currencies: Currency };
