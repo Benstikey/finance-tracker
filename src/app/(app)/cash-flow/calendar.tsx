@@ -76,6 +76,37 @@ function doesCashFlowTrigger(
   }
 }
 
+// Compute the cumulative balance from today to the start of the target month
+function computeBalanceUpToMonth(
+  targetYear: number,
+  targetMonth: number,
+  cashFlows: CashFlowWithCurrency[],
+  startingBalance: number,
+  rates: ExchangeRates
+): number {
+  const today = new Date();
+  const startOfTarget = new Date(targetYear, targetMonth, 1);
+
+  // If viewing current or past month, just use current balance
+  if (startOfTarget <= today) return startingBalance;
+
+  // Simulate from tomorrow to the day before target month
+  let balance = startingBalance;
+  const cursor = new Date(today.getFullYear(), today.getMonth(), today.getDate() + 1);
+
+  while (cursor < startOfTarget) {
+    for (const cf of cashFlows) {
+      const { triggers, amountMAD } = doesCashFlowTrigger(cf, cursor, rates);
+      if (triggers) {
+        balance += cf.type === "income" ? amountMAD : -amountMAD;
+      }
+    }
+    cursor.setDate(cursor.getDate() + 1);
+  }
+
+  return balance;
+}
+
 function computeMonthData(
   year: number,
   month: number,
@@ -83,22 +114,42 @@ function computeMonthData(
   startingBalance: number,
   rates: ExchangeRates
 ): DayData[] {
+  // Get cumulative balance up to this month
+  const balanceAtMonthStart = computeBalanceUpToMonth(
+    year,
+    month,
+    cashFlows,
+    startingBalance,
+    rates
+  );
+
   const daysInMonth = getDaysInMonth(year, month);
   const days: DayData[] = [];
-  let runningBalance = startingBalance;
+
+  // For the current month, start from current balance on today,
+  // for future months start from accumulated balance
+  const today = new Date();
+  const isCurrentMonth =
+    year === today.getFullYear() && month === today.getMonth();
+  let runningBalance = balanceAtMonthStart;
 
   for (let d = 1; d <= daysInMonth; d++) {
     const date = new Date(year, month, d);
     const income: { name: string; amount: number }[] = [];
     const expenses: { name: string; amount: number }[] = [];
 
-    for (const cf of cashFlows) {
-      const { triggers, amountMAD } = doesCashFlowTrigger(cf, date, rates);
-      if (triggers) {
-        if (cf.type === "income") {
-          income.push({ name: cf.name, amount: amountMAD });
-        } else {
-          expenses.push({ name: cf.name, amount: amountMAD });
+    // For current month, only count cash flows from tomorrow onwards
+    const isPastOrToday = isCurrentMonth && d <= today.getDate();
+
+    if (!isPastOrToday) {
+      for (const cf of cashFlows) {
+        const { triggers, amountMAD } = doesCashFlowTrigger(cf, date, rates);
+        if (triggers) {
+          if (cf.type === "income") {
+            income.push({ name: cf.name, amount: amountMAD });
+          } else {
+            expenses.push({ name: cf.name, amount: amountMAD });
+          }
         }
       }
     }
