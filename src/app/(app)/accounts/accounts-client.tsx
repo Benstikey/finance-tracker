@@ -4,18 +4,19 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { createAccount, updateAccount, deleteAccount } from "./actions";
 import type { AccountWithCurrency, Currency } from "@/lib/types/database";
-import { Landmark, Wallet, Banknote, Handshake, Pencil, Trash2, Plus } from "lucide-react";
+import {
+  Landmark,
+  Wallet,
+  Banknote,
+  Handshake,
+  Pencil,
+  Trash2,
+  Plus,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import {
   Card,
   CardContent,
@@ -48,12 +49,84 @@ const accountTypes = [
   { value: "loan", label: "Loan (owed to you)", icon: Handshake },
 ];
 
-const accountTypeIconMap: Record<string, React.ComponentType<{ className?: string }>> = {
+const accountTypeIconMap: Record<
+  string,
+  React.ComponentType<{ className?: string }>
+> = {
   bank: Landmark,
   wallet: Wallet,
   cash: Banknote,
   loan: Handshake,
 };
+
+function CurrencySelect({
+  currencies,
+  value,
+  onChange,
+}: {
+  currencies: Currency[];
+  value: string;
+  onChange: (val: string) => void;
+}) {
+  const selected = currencies.find((c) => c.id === value);
+  return (
+    <div className="space-y-2">
+      <Label>Currency</Label>
+      <div className="grid grid-cols-3 gap-2">
+        {currencies.map((c) => (
+          <button
+            key={c.id}
+            type="button"
+            onClick={() => onChange(c.id)}
+            className={`flex items-center gap-2 rounded-lg border p-2.5 text-sm transition-colors ${
+              value === c.id
+                ? "border-primary bg-primary/5 font-medium"
+                : "border-border hover:border-primary/50"
+            }`}
+          >
+            <span className="text-base">{c.symbol}</span>
+            <span>{c.code}</span>
+          </button>
+        ))}
+      </div>
+      {selected && (
+        <input type="hidden" name="currency_id" value={selected.id} />
+      )}
+    </div>
+  );
+}
+
+function TypeSelect({
+  value,
+  onChange,
+}: {
+  value: string;
+  onChange: (val: string) => void;
+}) {
+  return (
+    <div className="space-y-2">
+      <Label>Type</Label>
+      <div className="grid grid-cols-2 gap-2">
+        {accountTypes.map((t) => (
+          <button
+            key={t.value}
+            type="button"
+            onClick={() => onChange(t.value)}
+            className={`flex items-center gap-2 rounded-lg border p-2.5 text-sm transition-colors ${
+              value === t.value
+                ? "border-primary bg-primary/5 font-medium"
+                : "border-border hover:border-primary/50"
+            }`}
+          >
+            <t.icon className="h-4 w-4" />
+            <span>{t.label}</span>
+          </button>
+        ))}
+      </div>
+      <input type="hidden" name="type" value={value} />
+    </div>
+  );
+}
 
 function AccountForm({
   currencies,
@@ -65,6 +138,10 @@ function AccountForm({
   onDone: () => void;
 }) {
   const [loading, setLoading] = useState(false);
+  const [currencyId, setCurrencyId] = useState(
+    account?.currency_id || currencies[0]?.id || ""
+  );
+  const [accountType, setAccountType] = useState(account?.type || "bank");
   const router = useRouter();
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
@@ -99,41 +176,14 @@ function AccountForm({
           required
         />
       </div>
-      <div className="space-y-2">
-        <Label htmlFor="type">Type</Label>
-        <Select name="type" defaultValue={account?.type || "bank"}>
-          <SelectTrigger>
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            {accountTypes.map((t) => (
-              <SelectItem key={t.value} value={t.value}>
-                <span className="flex items-center gap-2">
-                  <t.icon className="h-4 w-4" /> {t.label}
-                </span>
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-      </div>
-      <div className="space-y-2">
-        <Label htmlFor="currency_id">Currency</Label>
-        <Select
-          name="currency_id"
-          defaultValue={account?.currency_id || currencies[0]?.id}
-        >
-          <SelectTrigger>
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            {currencies.map((c) => (
-              <SelectItem key={c.id} value={c.id}>
-                {c.symbol} {c.code} — {c.name}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-      </div>
+
+      <TypeSelect value={accountType} onChange={setAccountType} />
+      <CurrencySelect
+        currencies={currencies}
+        value={currencyId}
+        onChange={setCurrencyId}
+      />
+
       <div className="space-y-2">
         <Label htmlFor="balance">Balance</Label>
         <Input
@@ -145,25 +195,31 @@ function AccountForm({
           required
         />
       </div>
-      <div className="space-y-2">
-        <Label htmlFor="icon">Icon (emoji)</Label>
-        <Input
-          id="icon"
-          name="icon"
-          defaultValue={account?.icon || ""}
-          placeholder="e.g. 🏦"
-        />
-      </div>
-      <div className="space-y-2">
-        <Label htmlFor="notes">Notes</Label>
-        <Textarea
-          id="notes"
-          name="notes"
-          defaultValue={account?.notes || ""}
-          placeholder="For loans: who owes you?"
-        />
-      </div>
-      <Button type="submit" className="w-full" disabled={loading}>
+
+      {accountType === "loan" && (
+        <div className="space-y-2">
+          <Label htmlFor="notes">Who owes you?</Label>
+          <Textarea
+            id="notes"
+            name="notes"
+            defaultValue={account?.notes || ""}
+            placeholder="e.g. Ahmed — laptop purchase"
+          />
+        </div>
+      )}
+      {accountType !== "loan" && (
+        <div className="space-y-2">
+          <Label htmlFor="notes">Notes (optional)</Label>
+          <Input
+            id="notes"
+            name="notes"
+            defaultValue={account?.notes || ""}
+            placeholder="Any extra details"
+          />
+        </div>
+      )}
+
+      <Button type="submit" className="w-full h-11" disabled={loading}>
         {loading ? "Saving..." : account ? "Update Account" : "Add Account"}
       </Button>
     </form>
@@ -178,7 +234,9 @@ export function AccountsClient({
   currencies: Currency[];
 }) {
   const [dialogOpen, setDialogOpen] = useState(false);
-  const [editAccount, setEditAccount] = useState<AccountWithCurrency | undefined>();
+  const [editAccount, setEditAccount] = useState<
+    AccountWithCurrency | undefined
+  >();
   const router = useRouter();
 
   async function handleDelete(id: string) {
@@ -190,7 +248,12 @@ export function AccountsClient({
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
-        <h1 className="text-3xl font-bold">Accounts</h1>
+        <div>
+          <h1 className="text-3xl font-semibold tracking-tight">Accounts</h1>
+          <p className="text-muted-foreground">
+            Manage your money across banks and wallets
+          </p>
+        </div>
         <Dialog
           open={dialogOpen}
           onOpenChange={(open) => {
@@ -231,7 +294,7 @@ export function AccountsClient({
         <CardContent>
           {accounts.length === 0 ? (
             <p className="text-center text-muted-foreground py-8">
-              No accounts yet. Click &quot;+ Add Account&quot; to get started.
+              No accounts yet. Click &quot;Add Account&quot; to get started.
             </p>
           ) : (
             <Table>
@@ -246,55 +309,55 @@ export function AccountsClient({
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {accounts.map((account) => (
-                  <TableRow key={account.id}>
-                    <TableCell className="font-medium">
-                      <span className="flex items-center gap-2">
-                        {(() => {
-                          const Icon = accountTypeIconMap[account.type] || Wallet;
-                          return <Icon className="h-4 w-4 text-muted-foreground" />;
-                        })()}
-                        {account.name}
-                      </span>
-                    </TableCell>
-                    <TableCell>
-                      <Badge variant="secondary">{account.type}</Badge>
-                    </TableCell>
-                    <TableCell>
-                      {account.currencies.symbol} {account.currencies.code}
-                    </TableCell>
-                    <TableCell className="text-right font-bold">
-                      {account.balance.toLocaleString("en-US", {
-                        minimumFractionDigits: 2,
-                      })}
-                    </TableCell>
-                    <TableCell className="text-muted-foreground max-w-[200px] truncate">
-                      {account.notes || "—"}
-                    </TableCell>
-                    <TableCell className="text-right">
-                      <div className="flex justify-end gap-2">
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => {
-                            setEditAccount(account);
-                            setDialogOpen(true);
-                          }}
-                        >
-                          <Pencil className="h-3.5 w-3.5" />
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          className="text-destructive"
-                          onClick={() => handleDelete(account.id)}
-                        >
-                          <Trash2 className="h-3.5 w-3.5" />
-                        </Button>
-                      </div>
-                    </TableCell>
-                  </TableRow>
-                ))}
+                {accounts.map((account) => {
+                  const Icon = accountTypeIconMap[account.type] || Wallet;
+                  return (
+                    <TableRow key={account.id}>
+                      <TableCell className="font-medium">
+                        <span className="flex items-center gap-2">
+                          <Icon className="h-4 w-4 text-muted-foreground" />
+                          {account.name}
+                        </span>
+                      </TableCell>
+                      <TableCell>
+                        <Badge variant="secondary">{account.type}</Badge>
+                      </TableCell>
+                      <TableCell>
+                        {account.currencies.symbol} {account.currencies.code}
+                      </TableCell>
+                      <TableCell className="text-right font-mono font-semibold">
+                        {account.balance.toLocaleString("en-US", {
+                          minimumFractionDigits: 2,
+                        })}
+                      </TableCell>
+                      <TableCell className="text-muted-foreground max-w-[200px] truncate">
+                        {account.notes || "—"}
+                      </TableCell>
+                      <TableCell className="text-right">
+                        <div className="flex justify-end gap-1">
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => {
+                              setEditAccount(account);
+                              setDialogOpen(true);
+                            }}
+                          >
+                            <Pencil className="h-3.5 w-3.5" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="text-destructive"
+                            onClick={() => handleDelete(account.id)}
+                          >
+                            <Trash2 className="h-3.5 w-3.5" />
+                          </Button>
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  );
+                })}
               </TableBody>
             </Table>
           )}

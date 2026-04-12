@@ -13,6 +13,7 @@ import {
 } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
+import { Separator } from "@/components/ui/separator";
 import {
   TrendingUp,
   Euro,
@@ -98,7 +99,7 @@ export default async function DashboardPage() {
         <p className="text-muted-foreground">Your financial overview</p>
       </div>
 
-      {/* Net Worth Cards */}
+      {/* Net Worth Cards — monochrome */}
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between pb-2">
@@ -106,7 +107,7 @@ export default async function DashboardPage() {
             <TrendingUp className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-green-600">
+            <div className="text-2xl font-bold">
               {formatCurrency(totalMAD, "MAD")}
             </div>
             <p className="text-xs text-muted-foreground mt-1">
@@ -120,7 +121,7 @@ export default async function DashboardPage() {
             <Euro className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-blue-600">
+            <div className="text-2xl font-bold">
               {formatCurrency(totalEUR, "EUR")}
             </div>
             <p className="text-xs text-muted-foreground mt-1">Euro</p>
@@ -132,7 +133,7 @@ export default async function DashboardPage() {
             <HandCoins className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-orange-600">
+            <div className="text-2xl font-bold">
               {formatCurrency(totalLoansMAD, "MAD")}
             </div>
             <p className="text-xs text-muted-foreground mt-1">
@@ -174,8 +175,7 @@ export default async function DashboardPage() {
             ) : (
               <div className="space-y-3">
                 {accounts.map((account) => {
-                  const IconComp =
-                    accountTypeIcons[account.type] || Wallet;
+                  const IconComp = accountTypeIcons[account.type] || Wallet;
                   return (
                     <div
                       key={account.id}
@@ -202,14 +202,14 @@ export default async function DashboardPage() {
                         </div>
                       </div>
                       <div className="text-right">
-                        <p className="text-sm font-bold">
+                        <p className="text-sm font-mono font-bold">
                           {formatCurrency(
                             account.balance,
                             account.currencies.code
                           )}
                         </p>
                         {account.currencies.code !== "MAD" && (
-                          <p className="text-xs text-muted-foreground">
+                          <p className="text-xs text-muted-foreground font-mono">
                             ~{" "}
                             {formatCurrency(
                               convertCurrency(
@@ -237,7 +237,7 @@ export default async function DashboardPage() {
               <Target className="h-5 w-5" />
               Objectives
             </CardTitle>
-            <CardDescription>Things you want to buy</CardDescription>
+            <CardDescription>Savings goals</CardDescription>
           </CardHeader>
           <CardContent>
             {objectives.length === 0 ? (
@@ -256,7 +256,7 @@ export default async function DashboardPage() {
                       <div className="flex items-center justify-between">
                         <div className="flex items-center gap-2">
                           {obj.completed ? (
-                            <CircleCheck className="h-4 w-4 text-green-600" />
+                            <CircleCheck className="h-4 w-4" />
                           ) : (
                             <Target className="h-4 w-4 text-muted-foreground" />
                           )}
@@ -276,15 +276,7 @@ export default async function DashboardPage() {
                       </div>
                       <Progress value={Math.min(progress, 100)} />
                       <p className="text-xs text-muted-foreground">
-                        {progress.toFixed(1)}% — Need{" "}
-                        {formatCurrency(
-                          Math.max(
-                            obj.target_amount - obj.current_saved,
-                            0
-                          ),
-                          obj.currencies.code
-                        )}{" "}
-                        more
+                        {progress.toFixed(1)}% complete
                       </p>
                     </div>
                   );
@@ -320,7 +312,7 @@ export default async function DashboardPage() {
                       </p>
                     )}
                   </div>
-                  <p className="font-bold text-orange-600">
+                  <p className="font-mono font-bold">
                     {formatCurrency(loan.balance, loan.currencies.code)}
                   </p>
                 </div>
