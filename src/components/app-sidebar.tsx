@@ -3,6 +3,14 @@
 import { usePathname, useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import {
+  LayoutDashboard,
+  Landmark,
+  Target,
+  ArrowLeftRight,
+  LogOut,
+  Wallet,
+} from "lucide-react";
+import {
   Sidebar,
   SidebarContent,
   SidebarFooter,
@@ -17,10 +25,10 @@ import {
 import { Button } from "@/components/ui/button";
 
 const navItems = [
-  { title: "Dashboard", href: "/dashboard", icon: "📊" },
-  { title: "Accounts", href: "/accounts", icon: "🏦" },
-  { title: "Objectives", href: "/objectives", icon: "🎯" },
-  { title: "Currencies", href: "/currencies", icon: "💱" },
+  { title: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
+  { title: "Accounts", href: "/accounts", icon: Landmark },
+  { title: "Objectives", href: "/objectives", icon: Target },
+  { title: "Currencies", href: "/currencies", icon: ArrowLeftRight },
 ];
 
 export function AppSidebar() {
@@ -37,7 +45,12 @@ export function AppSidebar() {
   return (
     <Sidebar>
       <SidebarHeader className="p-4">
-        <h2 className="text-lg font-bold">💰 Finance Tracker</h2>
+        <div className="flex items-center gap-2">
+          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary text-primary-foreground">
+            <Wallet className="h-4 w-4" />
+          </div>
+          <span className="text-lg font-semibold tracking-tight">Finance</span>
+        </div>
       </SidebarHeader>
       <SidebarContent>
         <SidebarGroup>
@@ -50,7 +63,7 @@ export function AppSidebar() {
                     render={<a href={item.href} />}
                     isActive={pathname === item.href}
                   >
-                    <span>{item.icon}</span>
+                    <item.icon className="h-4 w-4" />
                     <span>{item.title}</span>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
@@ -62,10 +75,11 @@ export function AppSidebar() {
       <SidebarFooter className="p-4">
         <Button
           variant="ghost"
-          className="w-full justify-start"
+          className="w-full justify-start gap-2"
           onClick={handleSignOut}
         >
-          🚪 Sign Out
+          <LogOut className="h-4 w-4" />
+          Sign Out
         </Button>
       </SidebarFooter>
     </Sidebar>

@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { createAccount, updateAccount, deleteAccount } from "./actions";
 import type { AccountWithCurrency, Currency } from "@/lib/types/database";
+import { Landmark, Wallet, Banknote, Handshake, Pencil, Trash2, Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -41,11 +42,18 @@ import {
 } from "@/components/ui/table";
 
 const accountTypes = [
-  { value: "bank", label: "Bank", icon: "🏦" },
-  { value: "wallet", label: "Digital Wallet", icon: "💳" },
-  { value: "cash", label: "Cash", icon: "💵" },
-  { value: "loan", label: "Loan (owed to you)", icon: "🤝" },
+  { value: "bank", label: "Bank", icon: Landmark },
+  { value: "wallet", label: "Digital Wallet", icon: Wallet },
+  { value: "cash", label: "Cash", icon: Banknote },
+  { value: "loan", label: "Loan (owed to you)", icon: Handshake },
 ];
+
+const accountTypeIconMap: Record<string, React.ComponentType<{ className?: string }>> = {
+  bank: Landmark,
+  wallet: Wallet,
+  cash: Banknote,
+  loan: Handshake,
+};
 
 function AccountForm({
   currencies,
@@ -100,7 +108,9 @@ function AccountForm({
           <SelectContent>
             {accountTypes.map((t) => (
               <SelectItem key={t.value} value={t.value}>
-                {t.icon} {t.label}
+                <span className="flex items-center gap-2">
+                  <t.icon className="h-4 w-4" /> {t.label}
+                </span>
               </SelectItem>
             ))}
           </SelectContent>
@@ -188,7 +198,9 @@ export function AccountsClient({
             if (!open) setEditAccount(undefined);
           }}
         >
-          <DialogTrigger render={<Button />}>+ Add Account</DialogTrigger>
+          <DialogTrigger render={<Button />}>
+            <Plus className="h-4 w-4 mr-1" /> Add Account
+          </DialogTrigger>
           <DialogContent>
             <DialogHeader>
               <DialogTitle>
@@ -237,7 +249,13 @@ export function AccountsClient({
                 {accounts.map((account) => (
                   <TableRow key={account.id}>
                     <TableCell className="font-medium">
-                      {account.icon || "💰"} {account.name}
+                      <span className="flex items-center gap-2">
+                        {(() => {
+                          const Icon = accountTypeIconMap[account.type] || Wallet;
+                          return <Icon className="h-4 w-4 text-muted-foreground" />;
+                        })()}
+                        {account.name}
+                      </span>
                     </TableCell>
                     <TableCell>
                       <Badge variant="secondary">{account.type}</Badge>
@@ -263,7 +281,7 @@ export function AccountsClient({
                             setDialogOpen(true);
                           }}
                         >
-                          Edit
+                          <Pencil className="h-3.5 w-3.5" />
                         </Button>
                         <Button
                           variant="ghost"
@@ -271,7 +289,7 @@ export function AccountsClient({
                           className="text-destructive"
                           onClick={() => handleDelete(account.id)}
                         >
-                          Delete
+                          <Trash2 className="h-3.5 w-3.5" />
                         </Button>
                       </div>
                     </TableCell>

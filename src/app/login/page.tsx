@@ -6,13 +6,7 @@ import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+import { Separator } from "@/components/ui/separator";
 
 export default function LoginPage() {
   const [email, setEmail] = useState("");
@@ -50,17 +44,56 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-background p-4">
-      <Card className="w-full max-w-md">
-        <CardHeader className="text-center">
-          <CardTitle className="text-2xl font-bold">
-            💰 Finance Tracker
-          </CardTitle>
-          <CardDescription>
-            {isSignUp ? "Create your account" : "Sign in to your account"}
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
+    <div className="flex min-h-screen">
+      {/* Left panel — branding */}
+      <div className="hidden lg:flex lg:w-1/2 bg-primary text-primary-foreground flex-col justify-between p-12">
+        <div>
+          <h1 className="text-2xl font-semibold tracking-tight">
+            Finance Tracker
+          </h1>
+        </div>
+        <div className="space-y-4">
+          <blockquote className="text-lg font-medium leading-relaxed opacity-90">
+            &ldquo;Track every dirham, dollar, and euro — all in one place.&rdquo;
+          </blockquote>
+          <div className="flex gap-3 text-sm opacity-70">
+            <span className="rounded-full border border-primary-foreground/20 px-3 py-1">
+              MAD
+            </span>
+            <span className="rounded-full border border-primary-foreground/20 px-3 py-1">
+              USD
+            </span>
+            <span className="rounded-full border border-primary-foreground/20 px-3 py-1">
+              EUR
+            </span>
+          </div>
+        </div>
+        <p className="text-xs opacity-50">
+          Multi-currency finance dashboard
+        </p>
+      </div>
+
+      {/* Right panel — form */}
+      <div className="flex flex-1 items-center justify-center p-6 sm:p-12">
+        <div className="w-full max-w-sm space-y-8">
+          {/* Mobile-only logo */}
+          <div className="lg:hidden text-center">
+            <h1 className="text-2xl font-semibold tracking-tight">
+              Finance Tracker
+            </h1>
+          </div>
+
+          <div className="space-y-2">
+            <h2 className="text-2xl font-semibold tracking-tight">
+              {isSignUp ? "Create an account" : "Welcome back"}
+            </h2>
+            <p className="text-sm text-muted-foreground">
+              {isSignUp
+                ? "Enter your details to get started"
+                : "Enter your credentials to access your dashboard"}
+            </p>
+          </div>
+
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="space-y-2">
               <Label htmlFor="email">Email</Label>
@@ -71,6 +104,8 @@ export default function LoginPage() {
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 required
+                autoComplete="email"
+                className="h-11"
               />
             </div>
             <div className="space-y-2">
@@ -83,38 +118,67 @@ export default function LoginPage() {
                 onChange={(e) => setPassword(e.target.value)}
                 required
                 minLength={6}
+                autoComplete={isSignUp ? "new-password" : "current-password"}
+                className="h-11"
               />
             </div>
+
             {error && (
-              <p
-                className={`text-sm ${error.includes("Check your email") ? "text-green-600" : "text-destructive"}`}
+              <div
+                className={`rounded-lg border px-4 py-3 text-sm ${
+                  error.includes("Check your email")
+                    ? "border-green-200 bg-green-50 text-green-800"
+                    : "border-destructive/20 bg-destructive/5 text-destructive"
+                }`}
               >
                 {error}
-              </p>
+              </div>
             )}
-            <Button type="submit" className="w-full" disabled={loading}>
-              {loading
-                ? "Loading..."
-                : isSignUp
-                  ? "Sign Up"
-                  : "Sign In"}
-            </Button>
+
             <Button
-              type="button"
-              variant="ghost"
-              className="w-full"
-              onClick={() => {
-                setIsSignUp(!isSignUp);
-                setError(null);
-              }}
+              type="submit"
+              className="w-full h-11 text-sm font-medium"
+              disabled={loading}
             >
-              {isSignUp
-                ? "Already have an account? Sign In"
-                : "Don't have an account? Sign Up"}
+              {loading ? (
+                <span className="flex items-center gap-2">
+                  <span className="h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent" />
+                  Loading...
+                </span>
+              ) : isSignUp ? (
+                "Create Account"
+              ) : (
+                "Sign In"
+              )}
             </Button>
           </form>
-        </CardContent>
-      </Card>
+
+          <div className="relative">
+            <Separator />
+            <span className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 bg-background px-2 text-xs text-muted-foreground">
+              or
+            </span>
+          </div>
+
+          <Button
+            type="button"
+            variant="outline"
+            className="w-full h-11"
+            onClick={() => {
+              setIsSignUp(!isSignUp);
+              setError(null);
+            }}
+          >
+            {isSignUp
+              ? "Already have an account? Sign In"
+              : "Don't have an account? Sign Up"}
+          </Button>
+
+          <p className="text-center text-xs text-muted-foreground">
+            Your data is stored securely with Supabase
+          </p>
+        </div>
+      </div>
     </div>
   );
 }

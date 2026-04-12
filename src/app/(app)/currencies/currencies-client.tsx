@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { createCurrency } from "./actions";
 import type { Currency } from "@/lib/types/database";
+import { Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -60,7 +61,9 @@ export function CurrenciesClient({
       <div className="flex items-center justify-between">
         <h1 className="text-3xl font-bold">Currencies</h1>
         <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-          <DialogTrigger render={<Button />}>+ Add Currency</DialogTrigger>
+          <DialogTrigger render={<Button />}>
+            <Plus className="h-4 w-4 mr-1" /> Add Currency
+          </DialogTrigger>
           <DialogContent>
             <DialogHeader>
               <DialogTitle>Add Currency</DialogTitle>

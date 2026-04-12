@@ -10,6 +10,7 @@ import {
 } from "./actions";
 import type { ObjectiveWithCurrency, Currency } from "@/lib/types/database";
 import { formatCurrency } from "@/lib/exchange-rates";
+import { Target, CircleCheck, Pencil, Trash2, Plus, Check, Undo2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -176,7 +177,9 @@ export function ObjectivesClient({
             if (!open) setEditObjective(undefined);
           }}
         >
-          <DialogTrigger render={<Button />}>+ Add Objective</DialogTrigger>
+          <DialogTrigger render={<Button />}>
+            <Plus className="h-4 w-4 mr-1" /> Add Objective
+          </DialogTrigger>
           <DialogContent>
             <DialogHeader>
               <DialogTitle>
@@ -225,7 +228,12 @@ export function ObjectivesClient({
                   <div className="flex items-start justify-between">
                     <div>
                       <CardTitle className="flex items-center gap-2">
-                        {obj.completed ? "✅" : "🎯"} {obj.name}
+                        {obj.completed ? (
+                          <CircleCheck className="h-5 w-5 text-green-600" />
+                        ) : (
+                          <Target className="h-5 w-5 text-muted-foreground" />
+                        )}
+                        {obj.name}
                       </CardTitle>
                       <CardDescription className="mt-1">
                         <Badge variant="secondary">
@@ -242,7 +250,11 @@ export function ObjectivesClient({
                           handleToggleComplete(obj.id, obj.completed)
                         }
                       >
-                        {obj.completed ? "Undo" : "Done"}
+                        {obj.completed ? (
+                          <Undo2 className="h-3.5 w-3.5" />
+                        ) : (
+                          <Check className="h-3.5 w-3.5" />
+                        )}
                       </Button>
                       <Button
                         variant="ghost"
@@ -252,7 +264,7 @@ export function ObjectivesClient({
                           setDialogOpen(true);
                         }}
                       >
-                        Edit
+                        <Pencil className="h-3.5 w-3.5" />
                       </Button>
                       <Button
                         variant="ghost"
@@ -260,7 +272,7 @@ export function ObjectivesClient({
                         className="text-destructive"
                         onClick={() => handleDelete(obj.id)}
                       >
-                        Delete
+                        <Trash2 className="h-3.5 w-3.5" />
                       </Button>
                     </div>
                   </div>
