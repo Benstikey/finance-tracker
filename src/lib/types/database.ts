@@ -226,6 +226,7 @@ export type Database = {
           account_id: string;
           amount: number;
           description: string | null;
+          date: string;
           created_at: string;
         };
         Insert: {
@@ -234,6 +235,7 @@ export type Database = {
           account_id: string;
           amount: number;
           description?: string | null;
+          date?: string;
           created_at?: string;
         };
         Update: {
@@ -242,6 +244,7 @@ export type Database = {
           account_id?: string;
           amount?: number;
           description?: string | null;
+          date?: string;
           created_at?: string;
         };
         Relationships: [
@@ -266,6 +269,7 @@ export type Currency = Database["public"]["Tables"]["currencies"]["Row"];
 export type Account = Database["public"]["Tables"]["accounts"]["Row"];
 export type Objective = Database["public"]["Tables"]["objectives"]["Row"];
 export type Transaction = Database["public"]["Tables"]["transactions"]["Row"];
+export type TransactionWithAccount = Transaction & { accounts: AccountWithCurrency };
 
 export type Loan = Database["public"]["Tables"]["loans"]["Row"];
 

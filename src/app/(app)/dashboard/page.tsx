@@ -7,23 +7,21 @@ import {
 import {
   Card,
   CardContent,
-  CardDescription,
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
 import {
-  TrendingUp,
-  Euro,
   ArrowUpRight,
   ArrowDownLeft,
-  PiggyBank,
   Landmark,
   Wallet,
   Banknote,
   Target,
   CircleCheck,
+  TrendingUp,
+  TrendingDown,
 } from "lucide-react";
 import type {
   AccountWithCurrency,
@@ -59,28 +57,13 @@ export default async function DashboardPage() {
     getExchangeRates("USD"),
   ]);
 
-  const accounts = (accountsRes.data ||
-    []) as unknown as AccountWithCurrency[];
-  const objectives = (objectivesRes.data ||
-    []) as unknown as ObjectiveWithCurrency[];
+  const accounts = (accountsRes.data || []) as unknown as AccountWithCurrency[];
+  const objectives = (objectivesRes.data || []) as unknown as ObjectiveWithCurrency[];
   const loans = (loansRes.data || []) as unknown as LoanWithCurrency[];
 
   let totalMAD = 0;
-  let totalEUR = 0;
-
   for (const account of accounts) {
-    totalMAD += convertCurrency(
-      account.balance,
-      account.currencies.code,
-      "MAD",
-      rates
-    );
-    totalEUR += convertCurrency(
-      account.balance,
-      account.currencies.code,
-      "EUR",
-      rates
-    );
+    totalMAD += convertCurrency(account.balance, account.currencies.code, "MAD", rates);
   }
 
   const lentLoans = loans.filter((l) => l.direction === "lent");
@@ -88,168 +71,135 @@ export default async function DashboardPage() {
 
   let totalLentMAD = 0;
   for (const loan of lentLoans) {
-    totalLentMAD += convertCurrency(
-      loan.amount,
-      loan.currencies.code,
-      "MAD",
-      rates
-    );
+    totalLentMAD += convertCurrency(loan.amount, loan.currencies.code, "MAD", rates);
   }
   let totalBorrowedMAD = 0;
   for (const loan of borrowedLoans) {
-    totalBorrowedMAD += convertCurrency(
-      loan.amount,
-      loan.currencies.code,
-      "MAD",
-      rates
-    );
+    totalBorrowedMAD += convertCurrency(loan.amount, loan.currencies.code, "MAD", rates);
   }
 
-  // Total with loans: accounts + money owed to me - money I owe
   const totalWithLoansMAD = totalMAD + totalLentMAD - totalBorrowedMAD;
+  const activeObjectives = objectives.filter((o) => !o.completed);
 
   return (
-    <div className="flex flex-col gap-6 min-h-[calc(100vh-57px)]">
-      <div>
-        <h1 className="text-3xl font-semibold tracking-tight">Dashboard</h1>
-        <p className="text-muted-foreground">Your financial overview</p>
+    <div className="flex flex-col gap-6">
+      {/* ── KPI strip ───────────────────────────────────────────────── */}
+      <div className="grid grid-cols-2 gap-px overflow-hidden rounded-xl border border-border bg-border lg:grid-cols-4">
+        {[
+          {
+            label: "Net Worth",
+            value: formatCurrency(totalMAD, "MAD"),
+            sub: `${accounts.length} account${accounts.length !== 1 ? "s" : ""}`,
+            icon: TrendingUp,
+            positive: true,
+          },
+          {
+            label: "Owed to Me",
+            value: formatCurrency(totalLentMAD, "MAD"),
+            sub: `${lentLoans.length} active loan${lentLoans.length !== 1 ? "s" : ""}`,
+            icon: ArrowUpRight,
+            positive: true,
+          },
+          {
+            label: "I Owe",
+            value: formatCurrency(totalBorrowedMAD, "MAD"),
+            sub: `${borrowedLoans.length} active loan${borrowedLoans.length !== 1 ? "s" : ""}`,
+            icon: ArrowDownLeft,
+            positive: false,
+          },
+          {
+            label: "Total (with loans)",
+            value: formatCurrency(totalWithLoansMAD, "MAD"),
+            sub: "Accounts + lent − borrowed",
+            icon: totalWithLoansMAD >= 0 ? TrendingUp : TrendingDown,
+            positive: totalWithLoansMAD >= 0,
+          },
+        ].map(({ label, value, sub, icon: Icon, positive }) => (
+          <div key={label} className="flex items-center gap-4 bg-card px-5 py-5">
+            <div
+              className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-lg ${
+                positive ? "bg-primary/10" : "bg-destructive/10"
+              }`}
+            >
+              <Icon
+                className={`h-5 w-5 ${positive ? "text-primary" : "text-destructive"}`}
+              />
+            </div>
+            <div className="min-w-0">
+              <p className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+                {label}
+              </p>
+              <p className="mt-0.5 truncate text-xl font-bold text-foreground">
+                {value}
+              </p>
+              <p className="text-xs text-muted-foreground">{sub}</p>
+            </div>
+          </div>
+        ))}
       </div>
 
-      {/* Summary Cards */}
-      <div className="grid gap-4 grid-cols-2 lg:grid-cols-5">
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardDescription>Net Worth (MAD)</CardDescription>
-            <TrendingUp className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">
-              {formatCurrency(totalMAD, "MAD")}
-            </div>
-            <p className="text-xs text-muted-foreground mt-1">
-              Moroccan Dirham
-            </p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardDescription>Net Worth (EUR)</CardDescription>
-            <Euro className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">
-              {formatCurrency(totalEUR, "EUR")}
-            </div>
-            <p className="text-xs text-muted-foreground mt-1">Euro</p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardDescription>Owed to me</CardDescription>
-            <ArrowUpRight className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">
-              {formatCurrency(totalLentMAD, "MAD")}
-            </div>
-            <p className="text-xs text-muted-foreground mt-1">
-              {lentLoans.length} loan{lentLoans.length !== 1 && "s"}
-            </p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardDescription>I owe</CardDescription>
-            <ArrowDownLeft className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">
-              {formatCurrency(totalBorrowedMAD, "MAD")}
-            </div>
-            <p className="text-xs text-muted-foreground mt-1">
-              {borrowedLoans.length} loan
-              {borrowedLoans.length !== 1 && "s"}
-            </p>
-          </CardContent>
-        </Card>
-        <Card className="col-span-2 lg:col-span-1">
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardDescription>Total (with loans)</CardDescription>
-            <PiggyBank className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">
-              {formatCurrency(totalWithLoansMAD, "MAD")}
-            </div>
-            <p className="text-xs text-muted-foreground mt-1">
-              Accounts + lent - borrowed
-            </p>
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* Accounts & Objectives — fill remaining space */}
-      <div className="grid gap-4 md:grid-cols-2 flex-1">
-        <Card className="flex flex-col">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Landmark className="h-5 w-5" />
+      {/* ── Accounts + Objectives ───────────────────────────────────── */}
+      <div className="grid gap-5 lg:grid-cols-2">
+        {/* Accounts */}
+        <Card className="flex flex-col shadow-sm">
+          <CardHeader className="flex flex-row items-center justify-between border-b border-border pb-4">
+            <CardTitle className="flex items-center gap-2 text-[15px] font-semibold">
+              <Landmark className="h-4 w-4 text-primary" />
               Accounts
             </CardTitle>
-            <CardDescription>Your money across all accounts</CardDescription>
+            <a
+              href="/accounts"
+              className="text-xs font-medium text-primary hover:underline"
+            >
+              View all →
+            </a>
           </CardHeader>
-          <CardContent className="flex-1">
+          <CardContent className="flex-1 pt-4">
             {accounts.length === 0 ? (
-              <p className="text-sm text-muted-foreground py-4 text-center">
-                No accounts yet. Go to Accounts to add some.
+              <p className="py-6 text-center text-sm text-muted-foreground">
+                No accounts yet.{" "}
+                <a href="/accounts" className="text-primary hover:underline">
+                  Add one →
+                </a>
               </p>
             ) : (
-              <div className="space-y-3">
+              <div className="space-y-2">
                 {accounts.map((account) => {
                   const IconComp = accountTypeIcons[account.type] || Wallet;
+                  const balanceMAD = convertCurrency(
+                    account.balance,
+                    account.currencies.code,
+                    "MAD",
+                    rates
+                  );
+                  const pct = totalMAD > 0 ? (balanceMAD / totalMAD) * 100 : 0;
                   return (
                     <div
                       key={account.id}
-                      className="flex items-center justify-between rounded-lg border p-3"
+                      className="flex items-center gap-3 rounded-lg border border-border bg-card px-4 py-3 transition-shadow hover:shadow-sm"
                     >
-                      <div className="flex items-center gap-3">
-                        <div className="flex h-9 w-9 items-center justify-center rounded-md bg-muted">
-                          <IconComp className="h-4 w-4 text-muted-foreground" />
-                        </div>
-                        <div>
-                          <p className="text-sm font-medium leading-none">
+                      <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-primary/10">
+                        <IconComp className="h-4 w-4 text-primary" />
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <div className="flex items-center justify-between gap-2">
+                          <p className="truncate text-sm font-semibold text-foreground">
                             {account.name}
                           </p>
-                          <Badge
-                            variant="secondary"
-                            className="text-xs mt-1"
-                          >
-                            {account.type}
-                          </Badge>
+                          <p className="shrink-0 font-mono text-sm font-bold text-foreground">
+                            {formatCurrency(account.balance, account.currencies.code)}
+                          </p>
+                        </div>
+                        <div className="mt-1.5 flex items-center gap-2">
+                          <Progress value={pct} className="h-1.5 flex-1" />
+                          <span className="w-9 shrink-0 text-right text-[11px] text-muted-foreground">
+                            {pct.toFixed(0)}%
+                          </span>
                         </div>
                       </div>
-                      <div className="text-right">
-                        <p className="text-sm font-mono font-bold">
-                          {formatCurrency(
-                            account.balance,
-                            account.currencies.code
-                          )}
-                        </p>
-                        {account.currencies.code !== "MAD" && (
-                          <p className="text-xs text-muted-foreground font-mono">
-                            ~{" "}
-                            {formatCurrency(
-                              convertCurrency(
-                                account.balance,
-                                account.currencies.code,
-                                "MAD",
-                                rates
-                              ),
-                              "MAD"
-                            )}
-                          </p>
-                        )}
-                      </div>
+                      <Badge variant="secondary" className="shrink-0 text-[11px]">
+                        {account.type}
+                      </Badge>
                     </div>
                   );
                 })}
@@ -258,56 +208,71 @@ export default async function DashboardPage() {
           </CardContent>
         </Card>
 
-        <Card className="flex flex-col">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Target className="h-5 w-5" />
+        {/* Objectives */}
+        <Card className="flex flex-col shadow-sm">
+          <CardHeader className="flex flex-row items-center justify-between border-b border-border pb-4">
+            <CardTitle className="flex items-center gap-2 text-[15px] font-semibold">
+              <Target className="h-4 w-4 text-primary" />
               Objectives
             </CardTitle>
-            <CardDescription>Savings goals</CardDescription>
+            <a
+              href="/objectives"
+              className="text-xs font-medium text-primary hover:underline"
+            >
+              View all →
+            </a>
           </CardHeader>
-          <CardContent className="flex-1">
+          <CardContent className="flex-1 pt-4">
             {objectives.length === 0 ? (
-              <p className="text-sm text-muted-foreground py-4 text-center">
-                No objectives yet. Go to Objectives to add some.
+              <p className="py-6 text-center text-sm text-muted-foreground">
+                No objectives yet.{" "}
+                <a href="/objectives" className="text-primary hover:underline">
+                  Add one →
+                </a>
               </p>
             ) : (
               <div className="space-y-4">
-                {objectives.map((obj) => {
+                {activeObjectives.slice(0, 5).map((obj) => {
                   const progress =
                     obj.target_amount > 0
                       ? (obj.current_saved / obj.target_amount) * 100
                       : 0;
                   return (
                     <div key={obj.id} className="space-y-2">
-                      <div className="flex items-center justify-between">
+                      <div className="flex items-center justify-between gap-2">
                         <div className="flex items-center gap-2">
                           {obj.completed ? (
-                            <CircleCheck className="h-4 w-4" />
+                            <CircleCheck className="h-4 w-4 text-primary" />
                           ) : (
                             <Target className="h-4 w-4 text-muted-foreground" />
                           )}
-                          <p className="text-sm font-medium">{obj.name}</p>
+                          <p className="text-sm font-semibold text-foreground">
+                            {obj.name}
+                          </p>
                         </div>
-                        <p className="text-xs font-mono font-semibold">
-                          {formatCurrency(
-                            obj.current_saved,
-                            obj.currencies.code
-                          )}{" "}
-                          /{" "}
-                          {formatCurrency(
-                            obj.target_amount,
-                            obj.currencies.code
-                          )}
+                        <p className="shrink-0 font-mono text-xs text-muted-foreground">
+                          {formatCurrency(obj.current_saved, obj.currencies.code)}
+                          {" / "}
+                          {formatCurrency(obj.target_amount, obj.currencies.code)}
                         </p>
                       </div>
-                      <Progress value={Math.min(progress, 100)} />
-                      <p className="text-xs text-muted-foreground">
-                        {progress.toFixed(1)}% complete
-                      </p>
+                      <div className="flex items-center gap-2">
+                        <Progress
+                          value={Math.min(progress, 100)}
+                          className="h-1.5 flex-1"
+                        />
+                        <span className="w-9 shrink-0 text-right text-[11px] font-medium text-muted-foreground">
+                          {progress.toFixed(0)}%
+                        </span>
+                      </div>
                     </div>
                   );
                 })}
+                {objectives.filter((o) => o.completed).length > 0 && (
+                  <p className="pt-1 text-xs text-muted-foreground">
+                    +{objectives.filter((o) => o.completed).length} completed
+                  </p>
+                )}
               </div>
             )}
           </CardContent>

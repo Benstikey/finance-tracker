@@ -3,7 +3,8 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { createAccount, updateAccount, deleteAccount } from "./actions";
-import type { AccountWithCurrency, Currency } from "@/lib/types/database";
+import { addTransaction, deleteTransaction } from "./transaction-actions";
+import type { AccountWithCurrency, Currency, Transaction } from "@/lib/types/database";
 import {
   Landmark,
   Wallet,
@@ -11,6 +12,11 @@ import {
   Pencil,
   Trash2,
   Plus,
+  ArrowUpCircle,
+  ArrowDownCircle,
+  ChevronDown,
+  ChevronUp,
+  X,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -209,12 +215,296 @@ function AccountForm({
   );
 }
 
+function TransactionDialog({
+  account,
+  onDone,
+}: {
+  account: AccountWithCurrency;
+  onDone: () => void;
+}) {
+  const [loading, setLoading] = useState(false);
+  const [txType, setTxType] = useState<"deposit" | "withdrawal">("deposit");
+  const today = new Date().toISOString().split("T")[0];
+  const router = useRouter();
+
+  async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
+    e.preventDefault();
+    setLoading(true);
+    const formData = new FormData(e.currentTarget);
+    formData.set("account_id", account.id);
+    formData.set("type", txType);
+    try {
+      await addTransaction(formData);
+      router.refresh();
+      onDone();
+    } catch (err) {
+      alert(err instanceof Error ? err.message : "Error");
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  return (
+    <form onSubmit={handleSubmit} className="space-y-4">
+      <div className="space-y-2">
+        <Label>Type</Label>
+        <div className="grid grid-cols-2 gap-2">
+          <button
+            type="button"
+            onClick={() => setTxType("deposit")}
+            className={`flex items-center gap-2 rounded-lg border p-2.5 text-sm transition-colors ${
+              txType === "deposit"
+                ? "border-green-500 bg-green-50 dark:bg-green-950/20 font-medium text-green-700 dark:text-green-400"
+                : "border-border hover:border-primary/50"
+            }`}
+          >
+            <ArrowUpCircle className="h-4 w-4" />
+            Deposit
+          </button>
+          <button
+            type="button"
+            onClick={() => setTxType("withdrawal")}
+            className={`flex items-center gap-2 rounded-lg border p-2.5 text-sm transition-colors ${
+              txType === "withdrawal"
+                ? "border-red-500 bg-red-50 dark:bg-red-950/20 font-medium text-red-700 dark:text-red-400"
+                : "border-border hover:border-primary/50"
+            }`}
+          >
+            <ArrowDownCircle className="h-4 w-4" />
+            Withdrawal
+          </button>
+        </div>
+      </div>
+
+      <div className="space-y-2">
+        <Label htmlFor="amount">Amount ({account.currencies.code})</Label>
+        <Input
+          id="amount"
+          name="amount"
+          type="number"
+          step="0.01"
+          min="0.01"
+          placeholder="0.00"
+          required
+        />
+      </div>
+
+      <div className="space-y-2">
+        <Label htmlFor="date">Date</Label>
+        <Input
+          id="date"
+          name="date"
+          type="date"
+          defaultValue={today}
+          max={today}
+          required
+        />
+      </div>
+
+      <div className="space-y-2">
+        <Label htmlFor="description">Description (optional)</Label>
+        <Input
+          id="description"
+          name="description"
+          placeholder="e.g. Salary, Rent payment"
+        />
+      </div>
+
+      <Button
+        type="submit"
+        className={`w-full h-11 ${
+          txType === "deposit"
+            ? "bg-green-600 hover:bg-green-700 text-white"
+            : "bg-red-600 hover:bg-red-700 text-white"
+        }`}
+        disabled={loading}
+      >
+        {loading
+          ? "Saving..."
+          : txType === "deposit"
+          ? "Add Deposit"
+          : "Add Withdrawal"}
+      </Button>
+    </form>
+  );
+}
+
+function AccountRow({
+  account,
+  transactions,
+  onEdit,
+  onDelete,
+}: {
+  account: AccountWithCurrency;
+  transactions: Transaction[];
+  onEdit: (account: AccountWithCurrency) => void;
+  onDelete: (id: string) => void;
+}) {
+  const [txDialogOpen, setTxDialogOpen] = useState(false);
+  const [historyOpen, setHistoryOpen] = useState(false);
+  const [deletingTx, setDeletingTx] = useState<string | null>(null);
+  const router = useRouter();
+  const Icon = accountTypeIconMap[account.type] || Wallet;
+  const accountTxs = transactions.filter((t) => t.account_id === account.id);
+
+  async function handleDeleteTx(tx: Transaction) {
+    if (!confirm("Remove this transaction? The account balance will be adjusted.")) return;
+    setDeletingTx(tx.id);
+    try {
+      await deleteTransaction(tx.id, account.id, tx.amount);
+      router.refresh();
+    } catch (err) {
+      alert(err instanceof Error ? err.message : "Error");
+    } finally {
+      setDeletingTx(null);
+    }
+  }
+
+  return (
+    <>
+      <TableRow>
+        <TableCell className="font-medium">
+          <span className="flex items-center gap-2">
+            <Icon className="h-4 w-4 text-muted-foreground" />
+            {account.name}
+          </span>
+        </TableCell>
+        <TableCell>
+          <Badge variant="secondary">{account.type}</Badge>
+        </TableCell>
+        <TableCell>
+          {account.currencies.symbol} {account.currencies.code}
+        </TableCell>
+        <TableCell className="text-right font-mono font-semibold">
+          {account.balance.toLocaleString("en-US", {
+            minimumFractionDigits: 2,
+          })}
+        </TableCell>
+        <TableCell className="text-muted-foreground max-w-[200px] truncate">
+          {account.notes || "—"}
+        </TableCell>
+        <TableCell className="text-right">
+          <div className="flex justify-end gap-1">
+            <Dialog open={txDialogOpen} onOpenChange={setTxDialogOpen}>
+              <DialogTrigger render={<Button variant="ghost" size="sm" title="Add transaction" />}>
+                <Plus className="h-3.5 w-3.5" />
+              </DialogTrigger>
+              <DialogContent>
+                <DialogHeader>
+                  <DialogTitle>Add Transaction — {account.name}</DialogTitle>
+                  <DialogDescription>
+                    Record a deposit or withdrawal with the date it occurred.
+                  </DialogDescription>
+                </DialogHeader>
+                <TransactionDialog
+                  account={account}
+                  onDone={() => setTxDialogOpen(false)}
+                />
+              </DialogContent>
+            </Dialog>
+            <Button
+              variant="ghost"
+              size="sm"
+              title={historyOpen ? "Hide history" : "Show history"}
+              onClick={() => setHistoryOpen((v) => !v)}
+            >
+              {historyOpen ? (
+                <ChevronUp className="h-3.5 w-3.5" />
+              ) : (
+                <ChevronDown className="h-3.5 w-3.5" />
+              )}
+            </Button>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => onEdit(account)}
+            >
+              <Pencil className="h-3.5 w-3.5" />
+            </Button>
+            <Button
+              variant="ghost"
+              size="sm"
+              className="text-destructive"
+              onClick={() => onDelete(account.id)}
+            >
+              <Trash2 className="h-3.5 w-3.5" />
+            </Button>
+          </div>
+        </TableCell>
+      </TableRow>
+      {historyOpen && (
+        <TableRow>
+          <TableCell colSpan={6} className="p-0">
+            <div className="bg-muted/30 px-4 py-3 border-b">
+              <p className="text-xs font-medium text-muted-foreground mb-2">
+                Transaction History ({accountTxs.length})
+              </p>
+              {accountTxs.length === 0 ? (
+                <p className="text-xs text-muted-foreground py-2">
+                  No transactions recorded yet. Use the + button to add one.
+                </p>
+              ) : (
+                <div className="space-y-1">
+                  {accountTxs.map((tx) => (
+                    <div
+                      key={tx.id}
+                      className="flex items-center justify-between rounded-md bg-background border px-3 py-2 text-sm"
+                    >
+                      <div className="flex items-center gap-3">
+                        {tx.amount >= 0 ? (
+                          <ArrowUpCircle className="h-4 w-4 text-green-500 shrink-0" />
+                        ) : (
+                          <ArrowDownCircle className="h-4 w-4 text-red-500 shrink-0" />
+                        )}
+                        <div>
+                          <p className="font-medium">
+                            {tx.description || (tx.amount >= 0 ? "Deposit" : "Withdrawal")}
+                          </p>
+                          <p className="text-xs text-muted-foreground">{tx.date}</p>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <span
+                          className={`font-mono font-semibold ${
+                            tx.amount >= 0 ? "text-green-600" : "text-red-600"
+                          }`}
+                        >
+                          {tx.amount >= 0 ? "+" : ""}
+                          {tx.amount.toLocaleString("en-US", {
+                            minimumFractionDigits: 2,
+                          })}{" "}
+                          {account.currencies.code}
+                        </span>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="h-7 w-7 p-0 text-muted-foreground hover:text-destructive"
+                          disabled={deletingTx === tx.id}
+                          onClick={() => handleDeleteTx(tx)}
+                        >
+                          <X className="h-3.5 w-3.5" />
+                        </Button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </TableCell>
+        </TableRow>
+      )}
+    </>
+  );
+}
+
 export function AccountsClient({
   accounts,
   currencies,
+  transactions,
 }: {
   accounts: AccountWithCurrency[];
   currencies: Currency[];
+  transactions: Transaction[];
 }) {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editAccount, setEditAccount] = useState<
@@ -271,7 +561,8 @@ export function AccountsClient({
         <CardHeader>
           <CardTitle>All Accounts</CardTitle>
           <CardDescription>
-            {accounts.length} account{accounts.length !== 1 && "s"} tracked
+            {accounts.length} account{accounts.length !== 1 && "s"} tracked —
+            use the + button on any row to record a deposit or withdrawal
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -292,55 +583,18 @@ export function AccountsClient({
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {accounts.map((account) => {
-                  const Icon = accountTypeIconMap[account.type] || Wallet;
-                  return (
-                    <TableRow key={account.id}>
-                      <TableCell className="font-medium">
-                        <span className="flex items-center gap-2">
-                          <Icon className="h-4 w-4 text-muted-foreground" />
-                          {account.name}
-                        </span>
-                      </TableCell>
-                      <TableCell>
-                        <Badge variant="secondary">{account.type}</Badge>
-                      </TableCell>
-                      <TableCell>
-                        {account.currencies.symbol} {account.currencies.code}
-                      </TableCell>
-                      <TableCell className="text-right font-mono font-semibold">
-                        {account.balance.toLocaleString("en-US", {
-                          minimumFractionDigits: 2,
-                        })}
-                      </TableCell>
-                      <TableCell className="text-muted-foreground max-w-[200px] truncate">
-                        {account.notes || "—"}
-                      </TableCell>
-                      <TableCell className="text-right">
-                        <div className="flex justify-end gap-1">
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => {
-                              setEditAccount(account);
-                              setDialogOpen(true);
-                            }}
-                          >
-                            <Pencil className="h-3.5 w-3.5" />
-                          </Button>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            className="text-destructive"
-                            onClick={() => handleDelete(account.id)}
-                          >
-                            <Trash2 className="h-3.5 w-3.5" />
-                          </Button>
-                        </div>
-                      </TableCell>
-                    </TableRow>
-                  );
-                })}
+                {accounts.map((account) => (
+                  <AccountRow
+                    key={account.id}
+                    account={account}
+                    transactions={transactions}
+                    onEdit={(a) => {
+                      setEditAccount(a);
+                      setDialogOpen(true);
+                    }}
+                    onDelete={handleDelete}
+                  />
+                ))}
               </TableBody>
             </Table>
           )}

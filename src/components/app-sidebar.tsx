@@ -11,27 +11,25 @@ import {
   CalendarDays,
   LogOut,
   Wallet,
+  TrendingUp,
 } from "lucide-react";
 import {
   Sidebar,
   SidebarContent,
   SidebarFooter,
-  SidebarGroup,
-  SidebarGroupContent,
-  SidebarGroupLabel,
   SidebarHeader,
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
 } from "@/components/ui/sidebar";
-import { Button } from "@/components/ui/button";
 
 const navItems = [
   { title: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
   { title: "Accounts", href: "/accounts", icon: Landmark },
-  { title: "Loans", href: "/loans", icon: Handshake },
+  { title: "Net Worth", href: "/net-worth", icon: TrendingUp },
   { title: "Cash Flow", href: "/cash-flow", icon: CalendarDays },
   { title: "Objectives", href: "/objectives", icon: Target },
+  { title: "Loans", href: "/loans", icon: Handshake },
   { title: "Currencies", href: "/currencies", icon: ArrowLeftRight },
 ];
 
@@ -48,43 +46,45 @@ export function AppSidebar() {
 
   return (
     <Sidebar>
-      <SidebarHeader className="p-4">
-        <div className="flex items-center gap-2">
-          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary text-primary-foreground">
-            <Wallet className="h-4 w-4" />
+      {/* Logo */}
+      <SidebarHeader className="px-4 py-5">
+        <div className="flex items-center gap-2.5">
+          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary">
+            <Wallet className="h-4 w-4 text-primary-foreground" />
           </div>
-          <span className="text-lg font-semibold tracking-tight">Finance</span>
+          <span className="text-[15px] font-bold tracking-tight text-sidebar-accent-foreground">
+            Finance
+          </span>
         </div>
       </SidebarHeader>
-      <SidebarContent>
-        <SidebarGroup>
-          <SidebarGroupLabel>Navigation</SidebarGroupLabel>
-          <SidebarGroupContent>
-            <SidebarMenu>
-              {navItems.map((item) => (
-                <SidebarMenuItem key={item.href}>
-                  <SidebarMenuButton
-                    render={<a href={item.href} />}
-                    isActive={pathname === item.href}
-                  >
-                    <item.icon className="h-4 w-4" />
-                    <span>{item.title}</span>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
-              ))}
-            </SidebarMenu>
-          </SidebarGroupContent>
-        </SidebarGroup>
+
+      {/* Nav */}
+      <SidebarContent className="px-2 pt-1">
+        <SidebarMenu>
+          {navItems.map((item) => (
+            <SidebarMenuItem key={item.href}>
+              <SidebarMenuButton
+                render={<a href={item.href} />}
+                isActive={pathname === item.href}
+                className="gap-3 rounded-lg px-3 py-2.5 text-[13px] font-medium text-sidebar-foreground transition-colors hover:bg-sidebar-accent hover:text-sidebar-accent-foreground data-[active=true]:bg-sidebar-accent data-[active=true]:text-sidebar-accent-foreground"
+              >
+                <item.icon className="h-4 w-4 shrink-0" />
+                <span>{item.title}</span>
+              </SidebarMenuButton>
+            </SidebarMenuItem>
+          ))}
+        </SidebarMenu>
       </SidebarContent>
-      <SidebarFooter className="p-4">
-        <Button
-          variant="ghost"
-          className="w-full justify-start gap-2"
+
+      {/* Sign out */}
+      <SidebarFooter className="p-3">
+        <button
           onClick={handleSignOut}
+          className="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-[13px] font-medium text-sidebar-foreground/60 transition-colors hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
         >
-          <LogOut className="h-4 w-4" />
+          <LogOut className="h-4 w-4 shrink-0" />
           Sign Out
-        </Button>
+        </button>
       </SidebarFooter>
     </Sidebar>
   );
