@@ -1,25 +1,15 @@
-import { createClient } from "@/lib/supabase/server";
-import type { AccountWithCurrency, Currency, Transaction } from "@/lib/types/database";
+import { requireUserId } from "@/lib/dal";
+import { getAccounts, getCurrencies, getTransactions } from "@/lib/queries";
 import { AccountsClient } from "./accounts-client";
 
 export default async function AccountsPage() {
-  const supabase = await createClient();
+  const userId = await requireUserId();
 
-  const [accountsRes, currenciesRes, transactionsRes] = await Promise.all([
-    supabase
-      .from("accounts")
-      .select("*, currencies(*)")
-      .order("type", { ascending: true }),
-    supabase.from("currencies").select("*").order("code", { ascending: true }),
-    supabase
-      .from("transactions")
-      .select("*")
-      .order("date", { ascending: false }),
+  const [accounts, currencies, transactions] = await Promise.all([
+    getAccounts(userId, "type"),
+    getCurrencies(),
+    getTransactions(userId, "desc"),
   ]);
-
-  const accounts = (accountsRes.data || []) as unknown as AccountWithCurrency[];
-  const currencies = (currenciesRes.data || []) as Currency[];
-  const transactions = (transactionsRes.data || []) as Transaction[];
 
   return (
     <AccountsClient

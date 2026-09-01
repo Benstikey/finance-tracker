@@ -1,4 +1,5 @@
-import { createClient } from "@/lib/supabase/server";
+import { requireUserId } from "@/lib/dal";
+import { getAccounts, getLoans, getObjectives } from "@/lib/queries";
 import {
   getExchangeRates,
   convertCurrency,
@@ -23,11 +24,6 @@ import {
   TrendingUp,
   TrendingDown,
 } from "lucide-react";
-import type {
-  AccountWithCurrency,
-  ObjectiveWithCurrency,
-  LoanWithCurrency,
-} from "@/lib/types/database";
 
 const accountTypeIcons: Record<
   string,
@@ -39,27 +35,14 @@ const accountTypeIcons: Record<
 };
 
 export default async function DashboardPage() {
-  const supabase = await createClient();
+  const userId = await requireUserId();
 
-  const [accountsRes, objectivesRes, loansRes, rates] = await Promise.all([
-    supabase
-      .from("accounts")
-      .select("*, currencies(*)")
-      .order("type", { ascending: true }),
-    supabase
-      .from("objectives")
-      .select("*, currencies(*)")
-      .order("priority", { ascending: true }),
-    supabase
-      .from("loans")
-      .select("*, currencies(*)")
-      .eq("settled", false),
+  const [accounts, objectives, loans, rates] = await Promise.all([
+    getAccounts(userId, "type"),
+    getObjectives(userId),
+    getLoans(userId, { unsettledOnly: true }),
     getExchangeRates("USD"),
   ]);
-
-  const accounts = (accountsRes.data || []) as unknown as AccountWithCurrency[];
-  const objectives = (objectivesRes.data || []) as unknown as ObjectiveWithCurrency[];
-  const loans = (loansRes.data || []) as unknown as LoanWithCurrency[];
 
   let totalMAD = 0;
   for (const account of accounts) {

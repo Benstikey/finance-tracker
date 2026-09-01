@@ -1,87 +1,63 @@
 "use server";
 
-import { createClient } from "@/lib/supabase/server";
 import { revalidatePath } from "next/cache";
+import { sql } from "@/lib/db";
+import { requireUserId } from "@/lib/dal";
 
 export async function createObjective(formData: FormData) {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) throw new Error("Not authenticated");
+  const userId = await requireUserId();
 
-  const { error } = await supabase.from("objectives").insert({
-    user_id: user.id,
-    name: formData.get("name") as string,
-    target_amount: parseFloat(formData.get("target_amount") as string),
-    currency_id: formData.get("currency_id") as string,
-    current_saved: parseFloat(formData.get("current_saved") as string) || 0,
-    priority: parseInt(formData.get("priority") as string) || 0,
-  });
+  await sql`
+    insert into objectives (user_id, name, target_amount, currency_id, current_saved, priority)
+    values (
+      ${userId},
+      ${formData.get("name") as string},
+      ${parseFloat(formData.get("target_amount") as string)},
+      ${formData.get("currency_id") as string},
+      ${parseFloat(formData.get("current_saved") as string) || 0},
+      ${parseInt(formData.get("priority") as string) || 0}
+    )
+  `;
 
-  if (error) throw new Error(error.message);
   revalidatePath("/objectives");
   revalidatePath("/dashboard");
 }
 
 export async function updateObjective(formData: FormData) {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) throw new Error("Not authenticated");
+  const userId = await requireUserId();
 
-  const id = formData.get("id") as string;
-  const { error } = await supabase
-    .from("objectives")
-    .update({
-      name: formData.get("name") as string,
-      target_amount: parseFloat(formData.get("target_amount") as string),
-      currency_id: formData.get("currency_id") as string,
-      current_saved: parseFloat(formData.get("current_saved") as string) || 0,
-      priority: parseInt(formData.get("priority") as string) || 0,
-      completed: formData.get("completed") === "true",
-    })
-    .eq("id", id)
-    .eq("user_id", user.id);
+  await sql`
+    update objectives set
+      name          = ${formData.get("name") as string},
+      target_amount = ${parseFloat(formData.get("target_amount") as string)},
+      currency_id   = ${formData.get("currency_id") as string},
+      current_saved = ${parseFloat(formData.get("current_saved") as string) || 0},
+      priority      = ${parseInt(formData.get("priority") as string) || 0},
+      completed     = ${formData.get("completed") === "true"}
+    where id = ${formData.get("id") as string} and user_id = ${userId}
+  `;
 
-  if (error) throw new Error(error.message);
   revalidatePath("/objectives");
   revalidatePath("/dashboard");
 }
 
 export async function deleteObjective(id: string) {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) throw new Error("Not authenticated");
+  const userId = await requireUserId();
 
-  const { error } = await supabase
-    .from("objectives")
-    .delete()
-    .eq("id", id)
-    .eq("user_id", user.id);
+  await sql`delete from objectives where id = ${id} and user_id = ${userId}`;
 
-  if (error) throw new Error(error.message);
   revalidatePath("/objectives");
   revalidatePath("/dashboard");
 }
 
 export async function toggleObjectiveComplete(id: string, completed: boolean) {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) throw new Error("Not authenticated");
+  const userId = await requireUserId();
 
-  const { error } = await supabase
-    .from("objectives")
-    .update({ completed })
-    .eq("id", id)
-    .eq("user_id", user.id);
+  await sql`
+    update objectives set completed = ${completed}
+    where id = ${id} and user_id = ${userId}
+  `;
 
-  if (error) throw new Error(error.message);
   revalidatePath("/objectives");
   revalidatePath("/dashboard");
 }

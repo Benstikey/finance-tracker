@@ -1,47 +1,20 @@
 "use client";
 
-import { useState } from "react";
-import { createClient } from "@/lib/supabase/client";
-import { useRouter } from "next/navigation";
+import { useActionState, useState } from "react";
+import { login, signup } from "@/app/actions/auth";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
 
 export default function LoginPage() {
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
   const [isSignUp, setIsSignUp] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [loading, setLoading] = useState(false);
-  const router = useRouter();
-  const supabase = createClient();
-
-  async function handleSubmit(e: React.FormEvent) {
-    e.preventDefault();
-    setError(null);
-    setLoading(true);
-
-    try {
-      if (isSignUp) {
-        const { error } = await supabase.auth.signUp({ email, password });
-        if (error) throw error;
-        setError("Check your email for the confirmation link!");
-      } else {
-        const { error } = await supabase.auth.signInWithPassword({
-          email,
-          password,
-        });
-        if (error) throw error;
-        router.push("/dashboard");
-        router.refresh();
-      }
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "An error occurred");
-    } finally {
-      setLoading(false);
-    }
-  }
+  // Swapping the action between renders is supported; each mode keeps its own
+  // returned state. On success the action redirects, so nothing comes back.
+  const [state, action, pending] = useActionState(
+    isSignUp ? signup : login,
+    undefined
+  );
 
   return (
     <div className="flex min-h-screen">
@@ -94,15 +67,14 @@ export default function LoginPage() {
             </p>
           </div>
 
-          <form onSubmit={handleSubmit} className="space-y-4">
+          <form action={action} className="space-y-4">
             <div className="space-y-2">
               <Label htmlFor="email">Email</Label>
               <Input
                 id="email"
+                name="email"
                 type="email"
                 placeholder="you@example.com"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
                 required
                 autoComplete="email"
                 className="h-11"
@@ -112,10 +84,9 @@ export default function LoginPage() {
               <Label htmlFor="password">Password</Label>
               <Input
                 id="password"
+                name="password"
                 type="password"
                 placeholder="••••••••"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
                 required
                 minLength={6}
                 autoComplete={isSignUp ? "new-password" : "current-password"}
@@ -123,24 +94,18 @@ export default function LoginPage() {
               />
             </div>
 
-            {error && (
-              <div
-                className={`rounded-lg border px-4 py-3 text-sm ${
-                  error.includes("Check your email")
-                    ? "border-green-200 bg-green-50 text-green-800"
-                    : "border-destructive/20 bg-destructive/5 text-destructive"
-                }`}
-              >
-                {error}
+            {state?.error && (
+              <div className="rounded-lg border px-4 py-3 text-sm border-destructive/20 bg-destructive/5 text-destructive">
+                {state.error}
               </div>
             )}
 
             <Button
               type="submit"
               className="w-full h-11 text-sm font-medium"
-              disabled={loading}
+              disabled={pending}
             >
-              {loading ? (
+              {pending ? (
                 <span className="flex items-center gap-2">
                   <span className="h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent" />
                   Loading...
@@ -164,10 +129,7 @@ export default function LoginPage() {
             type="button"
             variant="outline"
             className="w-full h-11"
-            onClick={() => {
-              setIsSignUp(!isSignUp);
-              setError(null);
-            }}
+            onClick={() => setIsSignUp(!isSignUp)}
           >
             {isSignUp
               ? "Already have an account? Sign In"
@@ -175,7 +137,7 @@ export default function LoginPage() {
           </Button>
 
           <p className="text-center text-xs text-muted-foreground">
-            Your data is stored securely with Supabase
+            Your data is stored securely in your own Postgres database
           </p>
         </div>
       </div>

@@ -1,13 +1,10 @@
-import { createClient } from "@/lib/supabase/server";
-import type { Currency } from "@/lib/types/database";
+import { requireUserId } from "@/lib/dal";
+import { getCurrencies } from "@/lib/queries";
 import { CurrenciesClient } from "./currencies-client";
 
 export default async function CurrenciesPage() {
-  const supabase = await createClient();
-  const { data } = await supabase
-    .from("currencies")
-    .select("*")
-    .order("code", { ascending: true });
+  await requireUserId();
+  const currencies = await getCurrencies();
 
-  return <CurrenciesClient currencies={(data || []) as Currency[]} />;
+  return <CurrenciesClient currencies={currencies} />;
 }

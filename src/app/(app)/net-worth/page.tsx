@@ -1,6 +1,6 @@
-import { createClient } from "@/lib/supabase/server";
+import { requireUserId } from "@/lib/dal";
+import { getAccounts, getTransactions } from "@/lib/queries";
 import { getExchangeRates, convertCurrency } from "@/lib/exchange-rates";
-import type { AccountWithCurrency, Transaction } from "@/lib/types/database";
 import { NetWorthClient } from "./net-worth-client";
 
 /** Generate every calendar date between start and end inclusive (YYYY-MM-DD). */
@@ -16,22 +16,13 @@ function dateRange(start: string, end: string): string[] {
 }
 
 export default async function NetWorthPage() {
-  const supabase = await createClient();
+  const userId = await requireUserId();
 
-  const [accountsRes, transactionsRes, rates] = await Promise.all([
-    supabase
-      .from("accounts")
-      .select("*, currencies(*)")
-      .order("name", { ascending: true }),
-    supabase
-      .from("transactions")
-      .select("*")
-      .order("date", { ascending: true }),
+  const [accounts, transactions, rates] = await Promise.all([
+    getAccounts(userId, "name"),
+    getTransactions(userId, "asc"),
     getExchangeRates("USD"),
   ]);
-
-  const accounts = (accountsRes.data || []) as unknown as AccountWithCurrency[];
-  const transactions = (transactionsRes.data || []) as Transaction[];
 
   const today = new Date().toISOString().split("T")[0];
 

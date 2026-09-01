@@ -1,4 +1,4 @@
-import { createClient } from "@/lib/supabase/server";
+import { optionalUserId } from "@/lib/dal";
 import { redirect } from "next/navigation";
 import Link from "next/link";
 import {
@@ -16,11 +16,8 @@ import {
 
 export default async function LandingPage() {
   // Redirect authenticated users straight to the app
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (user) redirect("/dashboard");
+  const userId = await optionalUserId();
+  if (userId) redirect("/dashboard");
 
   return (
     <div className="min-h-screen bg-white text-[#1E1B4B] font-sans">

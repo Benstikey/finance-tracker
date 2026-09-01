@@ -1,7 +1,7 @@
 "use client";
 
-import { usePathname, useRouter } from "next/navigation";
-import { createClient } from "@/lib/supabase/client";
+import { usePathname } from "next/navigation";
+import { logout } from "@/app/actions/auth";
 import {
   LayoutDashboard,
   Landmark,
@@ -35,13 +35,10 @@ const navItems = [
 
 export function AppSidebar() {
   const pathname = usePathname();
-  const router = useRouter();
-  const supabase = createClient();
 
   async function handleSignOut() {
-    await supabase.auth.signOut();
-    router.push("/login");
-    router.refresh();
+    // The server action clears the session cookie and redirects to /login.
+    await logout();
   }
 
   return (
