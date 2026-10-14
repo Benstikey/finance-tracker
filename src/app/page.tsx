@@ -41,7 +41,7 @@ export default async function LandingPage() {
             </Link>
             <Link
               href="/login"
-              className="rounded-lg bg-[#6366F1] px-4 py-2 text-sm font-semibold text-white transition-all hover:bg-[#4F46E5] hover:-translate-y-px"
+              className="rounded-lg bg-[#6366F1] px-4 py-2 text-sm font-semibold text-white transition-[background-color,translate,scale] duration-150 ease-out hover:bg-[#4F46E5] hover:-translate-y-px active:scale-[0.96]"
             >
               Get started free
             </Link>
@@ -83,14 +83,14 @@ export default async function LandingPage() {
         <div className="mt-10 flex flex-col items-center justify-center gap-3 sm:flex-row">
           <Link
             href="/login"
-            className="flex items-center gap-2 rounded-xl bg-[#6366F1] px-7 py-3.5 text-base font-semibold text-white shadow-lg shadow-indigo-200 transition-all hover:bg-[#4F46E5] hover:-translate-y-0.5 hover:shadow-xl hover:shadow-indigo-300"
+            className="flex items-center gap-2 rounded-xl bg-[#6366F1] ps-7 pe-6.5 py-3.5 text-base font-semibold text-white shadow-lg shadow-indigo-200 transition-[background-color,box-shadow,translate,scale] duration-150 ease-out hover:bg-[#4F46E5] hover:-translate-y-0.5 hover:shadow-xl hover:shadow-indigo-300 active:scale-[0.96]"
           >
             Create your account
             <ArrowRight className="h-4 w-4" />
           </Link>
           <Link
             href="/login"
-            className="rounded-xl border border-[#E0E7FF] bg-white px-7 py-3.5 text-base font-semibold text-[#1E1B4B] transition-all hover:border-[#6366F1] hover:text-[#6366F1]"
+            className="rounded-xl bg-white px-7 py-3.5 text-base font-semibold text-[#1E1B4B] shadow-(--shadow-border) transition-[color,box-shadow,scale] duration-150 ease-out hover:text-[#6366F1] hover:shadow-[0_0_0_1px_#6366F1] active:scale-[0.96]"
           >
             Sign in
           </Link>
@@ -102,8 +102,8 @@ export default async function LandingPage() {
         </p>
 
         {/* App preview card */}
-        <div className="relative mx-auto mt-16 max-w-3xl overflow-hidden rounded-2xl border border-[#E0E7FF] bg-[#F5F3FF] p-1 shadow-2xl shadow-indigo-100">
-          <div className="rounded-xl border border-[#E0E7FF] bg-white p-6">
+        <div className="relative mx-auto mt-16 max-w-3xl overflow-hidden rounded-[16px] border border-[#E0E7FF] bg-[#F5F3FF] p-1 shadow-2xl shadow-indigo-100">
+          <div className="rounded-[12px] border border-[#E0E7FF] bg-white p-6">
             {/* Fake browser chrome */}
             <div className="mb-4 flex items-center gap-1.5">
               <div className="h-2.5 w-2.5 rounded-full bg-[#FDA4AF]" />
@@ -278,7 +278,7 @@ export default async function LandingPage() {
           ].map(({ icon: Icon, color, bg, title, desc }) => (
             <div
               key={title}
-              className="group rounded-2xl border border-[#E0E7FF] bg-white p-6 transition-all hover:border-[#6366F1]/40 hover:shadow-lg hover:shadow-indigo-50 hover:-translate-y-0.5"
+              className="group rounded-2xl bg-white p-6 shadow-(--shadow-border) transition-[box-shadow,translate] duration-150 ease-out hover:shadow-(--shadow-border-hover) hover:-translate-y-0.5"
             >
               <div
                 className="mb-4 flex h-11 w-11 items-center justify-center rounded-xl"
@@ -341,7 +341,7 @@ export default async function LandingPage() {
 
       {/* ── Differentiator callout ─────────────────────────────────── */}
       <section className="mx-auto max-w-4xl px-6 py-24">
-        <div className="rounded-3xl border border-[#E0E7FF] bg-white p-10 text-center shadow-sm">
+        <div className="rounded-3xl bg-white p-10 text-center shadow-(--shadow-border)">
           <ShieldCheck className="mx-auto mb-5 h-12 w-12 text-[#059669]" />
           <h2 className="text-2xl font-extrabold text-[#1E1B4B] sm:text-3xl">
             Your data never leaves your account
@@ -385,7 +385,7 @@ export default async function LandingPage() {
           </p>
           <Link
             href="/login"
-            className="mt-10 inline-flex items-center gap-2 rounded-xl bg-white px-8 py-4 text-base font-bold text-[#6366F1] shadow-lg transition-all hover:-translate-y-0.5 hover:shadow-xl"
+            className="mt-10 inline-flex items-center gap-2 rounded-xl bg-white ps-8 pe-7.5 py-4 text-base font-bold text-[#6366F1] shadow-lg transition-[box-shadow,translate,scale] duration-150 ease-out hover:-translate-y-0.5 hover:shadow-xl active:scale-[0.96]"
           >
             Create your free account
             <ArrowRight className="h-4 w-4" />

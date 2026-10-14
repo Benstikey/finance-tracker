@@ -10,7 +10,14 @@ import {
 } from "./actions";
 import type { CashFlowWithCurrency, Currency } from "@/lib/types/database";
 import type { ExchangeRates } from "@/lib/exchange-rates";
-import { formatCurrency } from "@/lib/exchange-rates";
+import { convertCurrency, formatCurrency } from "@/lib/exchange-rates";
+import {
+  formatMAD,
+  MetricTabs,
+  PageHeader,
+  Panel,
+  PanelHeader,
+} from "@/components/metrics";
 import {
   Plus,
   Pencil,
@@ -23,16 +30,9 @@ import {
   Play,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { IconSwap } from "@/components/ui/icon-swap";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
 import {
   Dialog,
   DialogContent,
@@ -285,12 +285,12 @@ function CashFlowItem({
 }) {
   return (
     <div
-      className={`flex items-center justify-between rounded-lg border p-4 transition-opacity ${
+      className={`flex items-center justify-between gap-3 px-4 py-3 transition-opacity @min-[460px]:px-5 ${
         !cf.active ? "opacity-50" : ""
       }`}
     >
       <div className="flex items-center gap-3">
-        <div className="flex h-10 w-10 items-center justify-center rounded-full bg-muted">
+        <div className="flex size-9 shrink-0 items-center justify-center rounded-full bg-muted">
           {cf.type === "income" ? (
             <TrendingUp className="h-4 w-4" />
           ) : (
@@ -316,7 +316,7 @@ function CashFlowItem({
       </div>
       <div className="flex items-center gap-3">
         <div className="text-right">
-          <p className="font-mono font-bold">
+          <p className="font-mono font-semibold tabular-nums">
             {cf.type === "expense" ? "−" : "+"}
             {formatCurrency(cf.amount, cf.currencies.code)}
           </p>
@@ -334,11 +334,11 @@ function CashFlowItem({
             onClick={onToggleActive}
             title={cf.active ? "Pause" : "Resume"}
           >
-            {cf.active ? (
-              <Pause className="h-3.5 w-3.5" />
-            ) : (
-              <Play className="h-3.5 w-3.5" />
-            )}
+            <IconSwap
+              active={cf.active}
+              activeIcon={<Pause className="h-3.5 w-3.5" />}
+              inactiveIcon={<Play className="h-3.5 w-3.5 translate-x-px" />}
+            />
           </Button>
           <Button
             variant="ghost"
@@ -362,6 +362,24 @@ function CashFlowItem({
   );
 }
 
+// Average occurrences per month, to compare entries on one scale.
+const PER_MONTH: Record<CashFlowWithCurrency["frequency"], number> = {
+  one_time: 0,
+  daily: 365.25 / 12,
+  weekly: 52.18 / 12,
+  monthly: 1,
+  yearly: 1 / 12,
+};
+
+type FlowFilter = "income" | "expense" | "all" | "paused";
+
+const FILTER_TITLES: Record<FlowFilter, string> = {
+  income: "Income",
+  expense: "Expenses",
+  all: "All active entries",
+  paused: "Paused entries",
+};
+
 export function CashFlowClient({
   cashFlows,
   currencies,
@@ -377,10 +395,35 @@ export function CashFlowClient({
   const [editCashFlow, setEditCashFlow] = useState<
     CashFlowWithCurrency | undefined
   >();
+  const [filter, setFilter] = useState<FlowFilter>("all");
   const router = useRouter();
 
-  const incomeFlows = cashFlows.filter((cf) => cf.type === "income");
-  const expenseFlows = cashFlows.filter((cf) => cf.type === "expense");
+  const active = cashFlows.filter((cf) => cf.active);
+  const paused = cashFlows.filter((cf) => !cf.active);
+  const incomeFlows = active.filter((cf) => cf.type === "income");
+  const expenseFlows = active.filter((cf) => cf.type === "expense");
+
+  const monthlyMAD = (flows: CashFlowWithCurrency[]) =>
+    flows.reduce(
+      (s, cf) =>
+        s +
+        convertCurrency(cf.amount, cf.currencies.code, "MAD", rates) *
+          PER_MONTH[cf.frequency],
+      0
+    );
+  const monthlyIncome = monthlyMAD(incomeFlows);
+  const monthlyExpense = monthlyMAD(expenseFlows);
+  const monthlyNet = monthlyIncome - monthlyExpense;
+  const entries = (n: number) => `${n} entr${n !== 1 ? "ies" : "y"}`;
+
+  const visible =
+    filter === "income"
+      ? incomeFlows
+      : filter === "expense"
+        ? expenseFlows
+        : filter === "paused"
+          ? paused
+          : active;
 
   async function handleDelete(id: string) {
     if (!confirm("Delete this entry?")) return;
@@ -394,106 +437,106 @@ export function CashFlowClient({
   }
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-semibold tracking-tight">Cash Flow</h1>
-          <p className="text-muted-foreground">
-            Track income, expenses, and forecast your balance
-          </p>
-        </div>
-        <Dialog
-          open={dialogOpen}
-          onOpenChange={(open) => {
-            setDialogOpen(open);
-            if (!open) setEditCashFlow(undefined);
-          }}
-        >
-          <DialogTrigger render={<Button />}>
-            <Plus className="h-4 w-4 mr-1" /> Add Entry
-          </DialogTrigger>
-          <DialogContent>
-            <DialogHeader>
-              <DialogTitle>
-                {editCashFlow ? "Edit Entry" : "New Cash Flow Entry"}
-              </DialogTitle>
-              <DialogDescription>
-                {editCashFlow
-                  ? "Update this cash flow entry"
-                  : "Add recurring or one-time income/expense"}
-              </DialogDescription>
-            </DialogHeader>
-            <CashFlowForm
-              currencies={currencies}
-              cashFlow={editCashFlow}
-              onDone={() => setDialogOpen(false)}
-            />
-          </DialogContent>
-        </Dialog>
-      </div>
+    <div className="@container flex flex-col gap-5">
+      <PageHeader
+        title="Cash Flow"
+        subtitle="Income, expenses and your balance forecast · MAD"
+        actions={
+          <Dialog
+            open={dialogOpen}
+            onOpenChange={(open) => {
+              setDialogOpen(open);
+              if (!open) setEditCashFlow(undefined);
+            }}
+          >
+            <DialogTrigger render={<Button />}>
+              <Plus /> Add Entry
+            </DialogTrigger>
+            <DialogContent>
+              <DialogHeader>
+                <DialogTitle>
+                  {editCashFlow ? "Edit Entry" : "New Cash Flow Entry"}
+                </DialogTitle>
+                <DialogDescription>
+                  {editCashFlow
+                    ? "Update this cash flow entry"
+                    : "Add recurring or one-time income/expense"}
+                </DialogDescription>
+              </DialogHeader>
+              <CashFlowForm
+                currencies={currencies}
+                cashFlow={editCashFlow}
+                onDone={() => setDialogOpen(false)}
+              />
+            </DialogContent>
+          </Dialog>
+        }
+      />
 
-      {/* Calendar Forecast */}
+      <Panel>
+        <MetricTabs
+          label="Entries"
+          className="border-b border-border"
+          value={filter}
+          onChange={setFilter}
+          tabs={[
+            {
+              key: "income",
+              label: "Income / month",
+              value: formatMAD(monthlyIncome),
+              footer: entries(incomeFlows.length),
+            },
+            {
+              key: "expense",
+              label: "Expenses / month",
+              value: formatMAD(monthlyExpense),
+              footer: entries(expenseFlows.length),
+            },
+            {
+              key: "all",
+              label: "Net / month",
+              value: `${monthlyNet < 0 ? "−" : monthlyNet > 0 ? "+" : ""}${formatMAD(Math.abs(monthlyNet))}`,
+              footer: "recurring entries only",
+            },
+            {
+              key: "paused",
+              label: "Paused",
+              value: String(paused.length),
+              footer: entries(paused.length),
+            },
+          ]}
+        />
+        <PanelHeader title={FILTER_TITLES[filter]} />
+        {visible.length === 0 ? (
+          <div className="flex flex-col items-center px-5 pt-4 pb-10 text-center">
+            <CalendarDays className="mb-3 size-8 text-muted-foreground" />
+            <p className="text-sm text-muted-foreground">
+              No {FILTER_TITLES[filter].toLowerCase()} yet
+            </p>
+          </div>
+        ) : (
+          <div className="divide-y divide-border border-t border-border">
+            {visible.map((cf) => (
+              <CashFlowItem
+                key={cf.id}
+                cf={cf}
+                onEdit={() => {
+                  setEditCashFlow(cf);
+                  setDialogOpen(true);
+                }}
+                onDelete={() => handleDelete(cf.id)}
+                onToggleActive={() => handleToggleActive(cf.id, cf.active)}
+              />
+            ))}
+          </div>
+        )}
+      </Panel>
+
       <CashFlowCalendar
-        cashFlows={cashFlows.filter((cf) => cf.active)}
+        cashFlows={active}
         currentBalanceMAD={currentBalanceMAD}
         rates={rates}
       />
-
-      {/* Entries list */}
-      <Tabs defaultValue="all">
-        <TabsList>
-          <TabsTrigger value="all">
-            <CalendarDays className="h-3.5 w-3.5 mr-1" />
-            All ({cashFlows.length})
-          </TabsTrigger>
-          <TabsTrigger value="income">
-            <TrendingUp className="h-3.5 w-3.5 mr-1" />
-            Income ({incomeFlows.length})
-          </TabsTrigger>
-          <TabsTrigger value="expense">
-            <TrendingDown className="h-3.5 w-3.5 mr-1" />
-            Expenses ({expenseFlows.length})
-          </TabsTrigger>
-        </TabsList>
-
-        {(["all", "income", "expense"] as const).map((tab) => {
-          const items =
-            tab === "all"
-              ? cashFlows
-              : tab === "income"
-                ? incomeFlows
-                : expenseFlows;
-          return (
-            <TabsContent key={tab} value={tab} className="space-y-3 mt-4">
-              {items.length === 0 ? (
-                <Card>
-                  <CardContent className="flex flex-col items-center py-12 text-center">
-                    <CalendarDays className="h-8 w-8 text-muted-foreground mb-3" />
-                    <p className="text-sm text-muted-foreground">
-                      No {tab === "all" ? "entries" : tab} yet
-                    </p>
-                  </CardContent>
-                </Card>
-              ) : (
-                items.map((cf) => (
-                  <CashFlowItem
-                    key={cf.id}
-                    cf={cf}
-                    onEdit={() => {
-                      setEditCashFlow(cf);
-                      setDialogOpen(true);
-                    }}
-                    onDelete={() => handleDelete(cf.id)}
-                    onToggleActive={() =>
-                      handleToggleActive(cf.id, cf.active)
-                    }
-                  />
-                ))
-              )}
-            </TabsContent>
-          );
-        })}
-      </Tabs>
     </div>
   );
 }

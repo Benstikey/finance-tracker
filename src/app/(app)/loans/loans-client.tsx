@@ -4,7 +4,20 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { createLoan, updateLoan, deleteLoan, toggleLoanSettled } from "./actions";
 import type { LoanWithCurrency, Currency } from "@/lib/types/database";
-import { formatCurrency } from "@/lib/exchange-rates";
+import {
+  convertCurrency,
+  formatCurrency,
+  type ExchangeRates,
+} from "@/lib/exchange-rates";
+import {
+  formatMAD,
+  madFormat,
+  MetricTabs,
+  PageHeader,
+  Panel,
+  PanelHeader,
+  RankedList,
+} from "@/components/metrics";
 import {
   ArrowUpRight,
   ArrowDownLeft,
@@ -16,16 +29,9 @@ import {
   Handshake,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { IconSwap } from "@/components/ui/icon-swap";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
 import {
   Dialog,
   DialogContent,
@@ -35,7 +41,6 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
-import { Separator } from "@/components/ui/separator";
 
 function CurrencySelect({
   currencies,
@@ -207,16 +212,12 @@ function LoanCard({
 }) {
   return (
     <div
-      className={`flex items-center justify-between rounded-lg border p-4 transition-opacity ${
+      className={`flex items-center justify-between gap-3 px-4 py-3 transition-opacity @min-[460px]:px-5 ${
         loan.settled ? "opacity-50" : ""
       }`}
     >
       <div className="flex items-center gap-3">
-        <div
-          className={`flex h-10 w-10 items-center justify-center rounded-full ${
-            loan.direction === "lent" ? "bg-muted" : "bg-muted"
-          }`}
-        >
+        <div className="flex size-9 shrink-0 items-center justify-center rounded-full bg-muted">
           {loan.direction === "lent" ? (
             <ArrowUpRight className="h-4 w-4" />
           ) : (
@@ -240,7 +241,7 @@ function LoanCard({
         </div>
       </div>
       <div className="flex items-center gap-3">
-        <p className="font-mono font-bold text-right">
+        <p className="text-right font-mono font-semibold tabular-nums">
           {formatCurrency(loan.amount, loan.currencies.code)}
         </p>
         <div className="flex gap-0.5">
@@ -251,11 +252,11 @@ function LoanCard({
             onClick={onToggleSettled}
             title={loan.settled ? "Mark unsettled" : "Mark settled"}
           >
-            {loan.settled ? (
-              <Undo2 className="h-3.5 w-3.5" />
-            ) : (
-              <Check className="h-3.5 w-3.5" />
-            )}
+            <IconSwap
+              active={loan.settled}
+              activeIcon={<Undo2 className="h-3.5 w-3.5" />}
+              inactiveIcon={<Check className="h-3.5 w-3.5" />}
+            />
           </Button>
           <Button
             variant="ghost"
@@ -279,28 +280,61 @@ function LoanCard({
   );
 }
 
+type LoanFilter = "lent" | "borrowed" | "active" | "settled";
+
+const FILTER_TITLES: Record<LoanFilter, string> = {
+  lent: "Money owed to me",
+  borrowed: "Money I owe",
+  active: "All active loans",
+  settled: "Settled loans",
+};
+
 export function LoansClient({
   loans,
   currencies,
+  rates,
 }: {
   loans: LoanWithCurrency[];
   currencies: Currency[];
+  rates: ExchangeRates;
 }) {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editLoan, setEditLoan] = useState<LoanWithCurrency | undefined>();
   const [defaultDirection, setDefaultDirection] = useState<
     "lent" | "borrowed"
   >("lent");
+  const [filter, setFilter] = useState<LoanFilter>("lent");
   const router = useRouter();
 
-  const lentLoans = loans.filter((l) => l.direction === "lent");
-  const borrowedLoans = loans.filter((l) => l.direction === "borrowed");
+  const toMAD = (l: LoanWithCurrency) =>
+    convertCurrency(l.amount, l.currencies.code, "MAD", rates);
+  const sumMAD = (ls: LoanWithCurrency[]) => ls.reduce((s, l) => s + toMAD(l), 0);
+  const plural = (n: number, word: string) => `${n} ${word}${n !== 1 ? "s" : ""}`;
 
-  const activeLent = lentLoans.filter((l) => !l.settled);
-  const activeBorrowed = borrowedLoans.filter((l) => !l.settled);
+  const active = loans.filter((l) => !l.settled);
+  const settled = loans.filter((l) => l.settled);
+  const activeLent = active.filter((l) => l.direction === "lent");
+  const activeBorrowed = active.filter((l) => l.direction === "borrowed");
+  const net = sumMAD(activeLent) - sumMAD(activeBorrowed);
 
-  const totalLent = activeLent.reduce((sum, l) => sum + l.amount, 0);
-  const totalBorrowed = activeBorrowed.reduce((sum, l) => sum + l.amount, 0);
+  const visible =
+    filter === "lent"
+      ? activeLent
+      : filter === "borrowed"
+        ? activeBorrowed
+        : filter === "settled"
+          ? settled
+          : active;
+
+  // Net position per person: positive = they owe me.
+  const byPersonMap = new Map<string, number>();
+  for (const l of active) {
+    const signed = l.direction === "lent" ? toMAD(l) : -toMAD(l);
+    byPersonMap.set(l.person, (byPersonMap.get(l.person) ?? 0) + signed);
+  }
+  const byPerson = [...byPersonMap]
+    .map(([label, value]) => ({ label, value: Math.round(value) }))
+    .sort((a, b) => Math.abs(b.value) - Math.abs(a.value));
 
   async function handleDelete(id: string) {
     if (!confirm("Delete this loan?")) return;
@@ -320,131 +354,103 @@ export function LoansClient({
   }
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-semibold tracking-tight">Loans</h1>
-          <p className="text-muted-foreground">
-            Track money you lent and borrowed
-          </p>
-        </div>
-        <Dialog
-          open={dialogOpen}
-          onOpenChange={(open) => {
-            setDialogOpen(open);
-            if (!open) setEditLoan(undefined);
-          }}
-        >
-          <DialogTrigger render={<Button />}>
-            <Plus className="h-4 w-4 mr-1" /> Add Loan
-          </DialogTrigger>
-          <DialogContent>
-            <DialogHeader>
-              <DialogTitle>
-                {editLoan ? "Edit Loan" : "New Loan"}
-              </DialogTitle>
-              <DialogDescription>
-                {editLoan
-                  ? "Update loan details"
-                  : "Track money you lent or borrowed"}
-              </DialogDescription>
-            </DialogHeader>
-            <LoanForm
-              currencies={currencies}
-              loan={editLoan}
-              defaultDirection={defaultDirection}
-              onDone={() => setDialogOpen(false)}
-            />
-          </DialogContent>
-        </Dialog>
-      </div>
+    <div className="@container flex flex-col gap-5">
+      <PageHeader
+        title="Loans"
+        subtitle="Money you lent and borrowed · MAD"
+        actions={
+          <Dialog
+            open={dialogOpen}
+            onOpenChange={(open) => {
+              setDialogOpen(open);
+              if (!open) setEditLoan(undefined);
+            }}
+          >
+            <DialogTrigger render={<Button />}>
+              <Plus /> Add Loan
+            </DialogTrigger>
+            <DialogContent>
+              <DialogHeader>
+                <DialogTitle>{editLoan ? "Edit Loan" : "New Loan"}</DialogTitle>
+                <DialogDescription>
+                  {editLoan
+                    ? "Update loan details"
+                    : "Track money you lent or borrowed"}
+                </DialogDescription>
+              </DialogHeader>
+              <LoanForm
+                currencies={currencies}
+                loan={editLoan}
+                defaultDirection={defaultDirection}
+                onDone={() => setDialogOpen(false)}
+              />
+            </DialogContent>
+          </Dialog>
+        }
+      />
 
-      {/* Summary cards */}
-      <div className="grid gap-4 md:grid-cols-2">
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardDescription>Owed to me</CardDescription>
-            <ArrowUpRight className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold font-mono">
-              {activeLent.length > 0
-                ? activeLent
-                    .map(
-                      (l) =>
-                        `${l.currencies.symbol}${l.amount.toLocaleString()}`
-                    )
-                    .join(" + ")
-                : "—"}
-            </div>
-            <p className="text-xs text-muted-foreground mt-1">
-              {activeLent.length} active loan{activeLent.length !== 1 && "s"}
+      <Panel>
+        <MetricTabs
+          label="Loans"
+          className="border-b border-border"
+          value={filter}
+          onChange={setFilter}
+          tabs={[
+            {
+              key: "lent",
+              label: "Owed to me",
+              value: formatMAD(sumMAD(activeLent)),
+              footer: plural(activeLent.length, "active loan"),
+            },
+            {
+              key: "borrowed",
+              label: "I owe",
+              value: formatMAD(sumMAD(activeBorrowed)),
+              footer: plural(activeBorrowed.length, "active loan"),
+            },
+            {
+              key: "active",
+              label: "Net position",
+              value: `${net < 0 ? "−" : ""}${formatMAD(Math.abs(net))}`,
+              footer: net >= 0 ? "in your favour" : "you owe overall",
+            },
+            {
+              key: "settled",
+              label: "Settled",
+              value: formatMAD(sumMAD(settled)),
+              footer: plural(settled.length, "loan"),
+            },
+          ]}
+        />
+        <PanelHeader title={FILTER_TITLES[filter]}>
+          {(filter === "lent" || filter === "borrowed") && (
+            <Button variant="ghost" size="sm" onClick={() => openAddDialog(filter)}>
+              <Plus /> Add
+            </Button>
+          )}
+        </PanelHeader>
+        {visible.length === 0 ? (
+          <div className="flex flex-col items-center px-5 pt-4 pb-10 text-center">
+            <Handshake className="mb-3 size-8 text-muted-foreground" />
+            <p className="text-sm text-muted-foreground">
+              {filter === "lent"
+                ? "No one owes you money right now"
+                : filter === "borrowed"
+                  ? "You don\u2019t owe anyone right now"
+                  : filter === "settled"
+                    ? "No settled loans yet"
+                    : "No active loans"}
             </p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardDescription>I owe</CardDescription>
-            <ArrowDownLeft className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold font-mono">
-              {activeBorrowed.length > 0
-                ? activeBorrowed
-                    .map(
-                      (l) =>
-                        `${l.currencies.symbol}${l.amount.toLocaleString()}`
-                    )
-                    .join(" + ")
-                : "—"}
-            </div>
-            <p className="text-xs text-muted-foreground mt-1">
-              {activeBorrowed.length} active loan
-              {activeBorrowed.length !== 1 && "s"}
-            </p>
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* Tabs */}
-      <Tabs defaultValue="lent">
-        <TabsList>
-          <TabsTrigger value="lent">
-            <ArrowUpRight className="h-3.5 w-3.5 mr-1" />
-            Owed to me ({lentLoans.length})
-          </TabsTrigger>
-          <TabsTrigger value="borrowed">
-            <ArrowDownLeft className="h-3.5 w-3.5 mr-1" />
-            I owe ({borrowedLoans.length})
-          </TabsTrigger>
-        </TabsList>
-
-        <TabsContent value="lent" className="space-y-3 mt-4">
-          {lentLoans.length === 0 ? (
-            <Card>
-              <CardContent className="flex flex-col items-center py-12 text-center">
-                <Handshake className="h-8 w-8 text-muted-foreground mb-3" />
-                <p className="text-sm text-muted-foreground">
-                  No one owes you money right now
-                </p>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="mt-3"
-                  onClick={() => openAddDialog("lent")}
-                >
-                  <Plus className="h-3.5 w-3.5 mr-1" /> Add
-                </Button>
-              </CardContent>
-            </Card>
-          ) : (
-            lentLoans.map((loan) => (
+          </div>
+        ) : (
+          <div className="divide-y divide-border border-t border-border">
+            {visible.map((loan) => (
               <LoanCard
                 key={loan.id}
                 loan={loan}
                 onEdit={() => {
                   setEditLoan(loan);
-                  setDefaultDirection("lent");
+                  setDefaultDirection(loan.direction);
                   setDialogOpen(true);
                 }}
                 onDelete={() => handleDelete(loan.id)}
@@ -452,47 +458,18 @@ export function LoansClient({
                   handleToggleSettled(loan.id, loan.settled)
                 }
               />
-            ))
-          )}
-        </TabsContent>
+            ))}
+          </div>
+        )}
+      </Panel>
 
-        <TabsContent value="borrowed" className="space-y-3 mt-4">
-          {borrowedLoans.length === 0 ? (
-            <Card>
-              <CardContent className="flex flex-col items-center py-12 text-center">
-                <Handshake className="h-8 w-8 text-muted-foreground mb-3" />
-                <p className="text-sm text-muted-foreground">
-                  You don&apos;t owe anyone right now
-                </p>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="mt-3"
-                  onClick={() => openAddDialog("borrowed")}
-                >
-                  <Plus className="h-3.5 w-3.5 mr-1" /> Add
-                </Button>
-              </CardContent>
-            </Card>
-          ) : (
-            borrowedLoans.map((loan) => (
-              <LoanCard
-                key={loan.id}
-                loan={loan}
-                onEdit={() => {
-                  setEditLoan(loan);
-                  setDefaultDirection("borrowed");
-                  setDialogOpen(true);
-                }}
-                onDelete={() => handleDelete(loan.id)}
-                onToggleSettled={() =>
-                  handleToggleSettled(loan.id, loan.settled)
-                }
-              />
-            ))
-          )}
-        </TabsContent>
-      </Tabs>
+      <RankedList
+        title="By person · active loans"
+        unit="MAD"
+        items={byPerson}
+        empty="No active loans."
+        format={(v) => `${v > 0 ? "+" : v < 0 ? "−" : ""}${madFormat.format(Math.abs(v))}`}
+      />
     </div>
   );
 }

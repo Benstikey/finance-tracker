@@ -15,19 +15,19 @@ import {
   ArrowUpCircle,
   ArrowDownCircle,
   ChevronDown,
-  ChevronUp,
   X,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { convertCurrency, type ExchangeRates } from "@/lib/exchange-rates";
 import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+  formatMAD,
+  MetricTabs,
+  PageHeader,
+  Panel,
+  PanelHeader,
+} from "@/components/metrics";
 import {
   Dialog,
   DialogContent,
@@ -408,11 +408,11 @@ function AccountRow({
               title={historyOpen ? "Hide history" : "Show history"}
               onClick={() => setHistoryOpen((v) => !v)}
             >
-              {historyOpen ? (
-                <ChevronUp className="h-3.5 w-3.5" />
-              ) : (
-                <ChevronDown className="h-3.5 w-3.5" />
-              )}
+              <ChevronDown
+                className={`h-3.5 w-3.5 transition-[rotate] duration-200 ease-[cubic-bezier(0.2,0,0,1)] ${
+                  historyOpen ? "rotate-180" : ""
+                }`}
+              />
             </Button>
             <Button
               variant="ghost"
@@ -501,15 +501,18 @@ export function AccountsClient({
   accounts,
   currencies,
   transactions,
+  rates,
 }: {
   accounts: AccountWithCurrency[];
   currencies: Currency[];
   transactions: Transaction[];
+  rates: ExchangeRates;
 }) {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editAccount, setEditAccount] = useState<
     AccountWithCurrency | undefined
   >();
+  const [typeFilter, setTypeFilter] = useState("all");
   const router = useRouter();
 
   async function handleDelete(id: string) {
@@ -518,59 +521,83 @@ export function AccountsClient({
     router.refresh();
   }
 
-  return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-semibold tracking-tight">Accounts</h1>
-          <p className="text-muted-foreground">
-            Manage your money across banks and wallets
-          </p>
-        </div>
-        <Dialog
-          open={dialogOpen}
-          onOpenChange={(open) => {
-            setDialogOpen(open);
-            if (!open) setEditAccount(undefined);
-          }}
-        >
-          <DialogTrigger render={<Button />}>
-            <Plus className="h-4 w-4 mr-1" /> Add Account
-          </DialogTrigger>
-          <DialogContent>
-            <DialogHeader>
-              <DialogTitle>
-                {editAccount ? "Edit Account" : "Add Account"}
-              </DialogTitle>
-              <DialogDescription>
-                {editAccount
-                  ? "Update your account details"
-                  : "Add a new account to track"}
-              </DialogDescription>
-            </DialogHeader>
-            <AccountForm
-              currencies={currencies}
-              account={editAccount}
-              onDone={() => setDialogOpen(false)}
-            />
-          </DialogContent>
-        </Dialog>
-      </div>
+  const toMAD = (a: AccountWithCurrency) =>
+    convertCurrency(a.balance, a.currencies.code, "MAD", rates);
+  const tabs = [{ value: "all", label: "All accounts" }, ...accountTypes].map(
+    (t) => {
+      const matching = accounts.filter(
+        (a) => t.value === "all" || a.type === t.value
+      );
+      return {
+        key: t.value,
+        label: t.label,
+        value: formatMAD(matching.reduce((s, a) => s + toMAD(a), 0)),
+        footer: `${matching.length} account${matching.length !== 1 ? "s" : ""}`,
+      };
+    }
+  );
+  const visible = accounts.filter(
+    (a) => typeFilter === "all" || a.type === typeFilter
+  );
 
-      <Card>
-        <CardHeader>
-          <CardTitle>All Accounts</CardTitle>
-          <CardDescription>
-            {accounts.length} account{accounts.length !== 1 && "s"} tracked —
-            use the + button on any row to record a deposit or withdrawal
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          {accounts.length === 0 ? (
-            <p className="text-center text-muted-foreground py-8">
-              No accounts yet. Click &quot;Add Account&quot; to get started.
-            </p>
-          ) : (
+  return (
+    <div className="@container flex flex-col gap-5">
+      <PageHeader
+        title="Accounts"
+        subtitle="Manage your money across banks and wallets"
+        actions={
+          <Dialog
+            open={dialogOpen}
+            onOpenChange={(open) => {
+              setDialogOpen(open);
+              if (!open) setEditAccount(undefined);
+            }}
+          >
+            <DialogTrigger render={<Button />}>
+              <Plus /> Add Account
+            </DialogTrigger>
+            <DialogContent>
+              <DialogHeader>
+                <DialogTitle>
+                  {editAccount ? "Edit Account" : "Add Account"}
+                </DialogTitle>
+                <DialogDescription>
+                  {editAccount
+                    ? "Update your account details"
+                    : "Add a new account to track"}
+                </DialogDescription>
+              </DialogHeader>
+              <AccountForm
+                currencies={currencies}
+                account={editAccount}
+                onDone={() => setDialogOpen(false)}
+              />
+            </DialogContent>
+          </Dialog>
+        }
+      />
+
+      <Panel>
+        <MetricTabs
+          label="Account type"
+          className="border-b border-border"
+          value={typeFilter}
+          onChange={setTypeFilter}
+          tabs={tabs}
+        />
+        <PanelHeader title={tabs.find((t) => t.key === typeFilter)?.label}>
+          <span className="text-xs text-muted-foreground">
+            Use + on a row to record a deposit or withdrawal
+          </span>
+        </PanelHeader>
+        {visible.length === 0 ? (
+          <p className="px-5 pb-8 pt-4 text-center text-sm text-muted-foreground">
+            {accounts.length === 0
+              ? "No accounts yet. Click \u201cAdd Account\u201d to get started."
+              : "No accounts of this type."}
+          </p>
+        ) : (
+          <div className="px-2 pb-2 @min-[460px]:px-3">
             <Table>
               <TableHeader>
                 <TableRow>
@@ -583,7 +610,7 @@ export function AccountsClient({
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {accounts.map((account) => (
+                {visible.map((account) => (
                   <AccountRow
                     key={account.id}
                     account={account}
@@ -597,9 +624,9 @@ export function AccountsClient({
                 ))}
               </TableBody>
             </Table>
-          )}
-        </CardContent>
-      </Card>
+          </div>
+        )}
+      </Panel>
     </div>
   );
 }

@@ -1,19 +1,8 @@
 import { requireUserId } from "@/lib/dal";
 import { getAccounts, getTransactions } from "@/lib/queries";
-import { getExchangeRates, convertCurrency } from "@/lib/exchange-rates";
-import { NetWorthClient } from "./net-worth-client";
-
-/** Generate every calendar date between start and end inclusive (YYYY-MM-DD). */
-function dateRange(start: string, end: string): string[] {
-  const dates: string[] = [];
-  const cur = new Date(start + "T00:00:00Z");
-  const last = new Date(end + "T00:00:00Z");
-  while (cur <= last) {
-    dates.push(cur.toISOString().split("T")[0]);
-    cur.setUTCDate(cur.getUTCDate() + 1);
-  }
-  return dates;
-}
+import { getExchangeRates } from "@/lib/exchange-rates";
+import { accountBalanceHistory, historyDays } from "@/lib/history";
+import { NetWorthClient, type NetWorthRow } from "./net-worth-client";
 
 export default async function NetWorthPage() {
   const userId = await requireUserId();
@@ -24,62 +13,20 @@ export default async function NetWorthPage() {
     getExchangeRates("USD"),
   ]);
 
-  const today = new Date().toISOString().split("T")[0];
+  const days = historyDays();
+  const balances = accountBalanceHistory(days, accounts, transactions, rates);
 
-  // Find the earliest date to start the chart from.
-  // Use the oldest transaction date, or fall back to 30 days ago.
-  const thirtyDaysAgo = new Date(today + "T00:00:00Z");
-  thirtyDaysAgo.setUTCDate(thirtyDaysAgo.getUTCDate() - 30);
-  const fallbackStart = thirtyDaysAgo.toISOString().split("T")[0];
-
-  const earliestTx = transactions[0]?.date; // already sorted asc
-  const startDate = earliestTx && earliestTx < fallbackStart ? earliestTx : fallbackStart;
-
-  // Continuous daily range: always at least 2 points (start ... today)
-  const allDates = dateRange(startDate, today);
-
-  // initial_balance[acct] (in native currency) = current_balance - sum(all txs)
-  // so: balance at date D = initial_balance + sum(txs where date <= D)
-  const initialBalanceNative: Record<string, number> = {};
-  for (const acct of accounts) {
-    const sumTx = transactions
-      .filter((t) => t.account_id === acct.id)
-      .reduce((s, t) => s + t.amount, 0);
-    initialBalanceNative[acct.id] = acct.balance - sumTx;
-  }
-
-  type ChartRow = Record<string, number | string>;
-
-  const chartData: ChartRow[] = allDates.map((date) => {
-    const row: ChartRow = { date };
-    let totalMAD = 0;
-
-    for (const acct of accounts) {
-      const sumTxNative = transactions
-        .filter((t) => t.account_id === acct.id && t.date <= date)
-        .reduce((s, t) => s + t.amount, 0);
-
-      const balanceNative = initialBalanceNative[acct.id] + sumTxNative;
-      const balanceMAD = convertCurrency(
-        balanceNative,
-        acct.currencies.code,
-        "MAD",
-        rates
-      );
-      row[acct.id] = Math.round(balanceMAD * 100) / 100;
-      totalMAD += balanceMAD;
-    }
-
-    row["__total__"] = Math.round(totalMAD * 100) / 100;
-    return row;
-  });
+  const history: NetWorthRow[] = days.map((date, i) => ({
+    date,
+    total: Object.values(balances[i]).reduce((s, v) => s + v, 0),
+    accounts: balances[i],
+  }));
 
   const accountMeta = accounts.map((a) => ({
     id: a.id,
     name: a.name,
-    type: a.type,
     currencyCode: a.currencies.code,
   }));
 
-  return <NetWorthClient chartData={chartData} accountMeta={accountMeta} />;
+  return <NetWorthClient history={history} accountMeta={accountMeta} />;
 }

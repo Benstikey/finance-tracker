@@ -1,266 +1,105 @@
 import { requireUserId } from "@/lib/dal";
-import { getAccounts, getLoans, getObjectives } from "@/lib/queries";
+import { getAccounts, getLoans, getTransactions } from "@/lib/queries";
+import { getExchangeRates, convertCurrency } from "@/lib/exchange-rates";
 import {
-  getExchangeRates,
-  convertCurrency,
-  formatCurrency,
-} from "@/lib/exchange-rates";
-import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
-import { Progress } from "@/components/ui/progress";
-import { Badge } from "@/components/ui/badge";
-import {
-  ArrowUpRight,
-  ArrowDownLeft,
-  Landmark,
-  Wallet,
-  Banknote,
-  Target,
-  CircleCheck,
-  TrendingUp,
-  TrendingDown,
-} from "lucide-react";
-
-const accountTypeIcons: Record<
-  string,
-  React.ComponentType<{ className?: string }>
-> = {
-  bank: Landmark,
-  wallet: Wallet,
-  cash: Banknote,
-};
+  accountBalanceHistory,
+  historyDays,
+  loanHistory,
+  loanHistoryByPerson,
+  transactionFlowHistory,
+} from "@/lib/history";
+import type { RankedItem } from "@/components/metrics";
+import { DashboardClient, type DashboardSeries } from "./dashboard-client";
 
 export default async function DashboardPage() {
   const userId = await requireUserId();
 
-  const [accounts, objectives, loans, rates] = await Promise.all([
-    getAccounts(userId, "type"),
-    getObjectives(userId),
-    getLoans(userId, { unsettledOnly: true }),
+  const [accounts, transactions, loans, rates] = await Promise.all([
+    getAccounts(userId, "name"),
+    getTransactions(userId, "asc"),
+    getLoans(userId),
     getExchangeRates("USD"),
   ]);
 
-  let totalMAD = 0;
-  for (const account of accounts) {
-    totalMAD += convertCurrency(account.balance, account.currencies.code, "MAD", rates);
-  }
+  const toMAD = (amount: number, code: string) =>
+    convertCurrency(amount, code, "MAD", rates);
 
-  const lentLoans = loans.filter((l) => l.direction === "lent");
-  const borrowedLoans = loans.filter((l) => l.direction === "borrowed");
+  const days = historyDays();
+  const balances = accountBalanceHistory(days, accounts, transactions, rates);
+  const loanTotals = loanHistory(days, loans, rates);
+  const byPerson = loanHistoryByPerson(days, loans, rates);
+  const flows = transactionFlowHistory(days, accounts, transactions, rates);
 
-  let totalLentMAD = 0;
-  for (const loan of lentLoans) {
-    totalLentMAD += convertCurrency(loan.amount, loan.currencies.code, "MAD", rates);
-  }
-  let totalBorrowedMAD = 0;
-  for (const loan of borrowedLoans) {
-    totalBorrowedMAD += convertCurrency(loan.amount, loan.currencies.code, "MAD", rates);
-  }
+  const netWorth = balances.map((row) =>
+    Object.values(row).reduce((s, v) => s + v, 0)
+  );
 
-  const totalWithLoansMAD = totalMAD + totalLentMAD - totalBorrowedMAD;
-  const activeObjectives = objectives.filter((o) => !o.completed);
+  const codes = [...new Set(accounts.map((a) => a.currencies.code))];
+  const currencyBalance = (code: string) =>
+    days.map((_, i) =>
+      accounts
+        .filter((a) => a.currencies.code === code)
+        .reduce((s, a) => s + balances[i][a.id], 0)
+    );
+  const currencyFlow = (code: string) =>
+    days.map((_, i) =>
+      accounts
+        .filter((a) => a.currencies.code === code)
+        .reduce((s, a) => s + flows[a.id][i], 0)
+    );
+
+  const series: DashboardSeries = {
+    end: days.at(-1)!,
+    netWorth,
+    lent: loanTotals.map((l) => l.lent),
+    borrowed: loanTotals.map((l) => l.borrowed),
+    flow: days.map((_, i) =>
+      accounts.reduce((s, a) => s + flows[a.id][i], 0)
+    ),
+    accounts: accounts.map((a) => ({
+      id: a.id,
+      name: a.name,
+      balance: balances.map((row) => row[a.id]),
+      flow: flows[a.id],
+    })),
+    currencies: codes.map((code) => ({
+      code,
+      balance: currencyBalance(code),
+      flow: currencyFlow(code),
+    })),
+    people: {
+      lent: Object.entries(byPerson.lent).map(([name, s]) => ({ name, series: s })),
+      borrowed: Object.entries(byPerson.borrowed).map(([name, s]) => ({
+        name,
+        series: s,
+      })),
+    },
+  };
+
+  const accountItems: RankedItem[] = accounts
+    .map((a) => ({
+      label: a.name,
+      hint: a.currencies.code,
+      value: Math.round(toMAD(a.balance, a.currencies.code)),
+    }))
+    .sort((a, b) => b.value - a.value);
+
+  const currencyItems: RankedItem[] = codes
+    .map((code) => ({
+      label: code,
+      value: Math.round(
+        accounts
+          .filter((a) => a.currencies.code === code)
+          .reduce((s, a) => s + toMAD(a.balance, code), 0)
+      ),
+    }))
+    .sort((a, b) => b.value - a.value);
 
   return (
-    <div className="flex flex-col gap-6">
-      {/* ── KPI strip ───────────────────────────────────────────────── */}
-      <div className="grid grid-cols-2 gap-px overflow-hidden rounded-xl border border-border bg-border lg:grid-cols-4">
-        {[
-          {
-            label: "Net Worth",
-            value: formatCurrency(totalMAD, "MAD"),
-            sub: `${accounts.length} account${accounts.length !== 1 ? "s" : ""}`,
-            icon: TrendingUp,
-            positive: true,
-          },
-          {
-            label: "Owed to Me",
-            value: formatCurrency(totalLentMAD, "MAD"),
-            sub: `${lentLoans.length} active loan${lentLoans.length !== 1 ? "s" : ""}`,
-            icon: ArrowUpRight,
-            positive: true,
-          },
-          {
-            label: "I Owe",
-            value: formatCurrency(totalBorrowedMAD, "MAD"),
-            sub: `${borrowedLoans.length} active loan${borrowedLoans.length !== 1 ? "s" : ""}`,
-            icon: ArrowDownLeft,
-            positive: false,
-          },
-          {
-            label: "Total (with loans)",
-            value: formatCurrency(totalWithLoansMAD, "MAD"),
-            sub: "Accounts + lent − borrowed",
-            icon: totalWithLoansMAD >= 0 ? TrendingUp : TrendingDown,
-            positive: totalWithLoansMAD >= 0,
-          },
-        ].map(({ label, value, sub, icon: Icon, positive }) => (
-          <div key={label} className="flex items-center gap-4 bg-card px-5 py-5">
-            <div
-              className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-lg ${
-                positive ? "bg-primary/10" : "bg-destructive/10"
-              }`}
-            >
-              <Icon
-                className={`h-5 w-5 ${positive ? "text-primary" : "text-destructive"}`}
-              />
-            </div>
-            <div className="min-w-0">
-              <p className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
-                {label}
-              </p>
-              <p className="mt-0.5 truncate text-xl font-bold text-foreground">
-                {value}
-              </p>
-              <p className="text-xs text-muted-foreground">{sub}</p>
-            </div>
-          </div>
-        ))}
-      </div>
-
-      {/* ── Accounts + Objectives ───────────────────────────────────── */}
-      <div className="grid gap-5 lg:grid-cols-2">
-        {/* Accounts */}
-        <Card className="flex flex-col shadow-sm">
-          <CardHeader className="flex flex-row items-center justify-between border-b border-border pb-4">
-            <CardTitle className="flex items-center gap-2 text-[15px] font-semibold">
-              <Landmark className="h-4 w-4 text-primary" />
-              Accounts
-            </CardTitle>
-            <a
-              href="/accounts"
-              className="text-xs font-medium text-primary hover:underline"
-            >
-              View all →
-            </a>
-          </CardHeader>
-          <CardContent className="flex-1 pt-4">
-            {accounts.length === 0 ? (
-              <p className="py-6 text-center text-sm text-muted-foreground">
-                No accounts yet.{" "}
-                <a href="/accounts" className="text-primary hover:underline">
-                  Add one →
-                </a>
-              </p>
-            ) : (
-              <div className="space-y-2">
-                {accounts.map((account) => {
-                  const IconComp = accountTypeIcons[account.type] || Wallet;
-                  const balanceMAD = convertCurrency(
-                    account.balance,
-                    account.currencies.code,
-                    "MAD",
-                    rates
-                  );
-                  const pct = totalMAD > 0 ? (balanceMAD / totalMAD) * 100 : 0;
-                  return (
-                    <div
-                      key={account.id}
-                      className="flex items-center gap-3 rounded-lg border border-border bg-card px-4 py-3 transition-shadow hover:shadow-sm"
-                    >
-                      <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-primary/10">
-                        <IconComp className="h-4 w-4 text-primary" />
-                      </div>
-                      <div className="min-w-0 flex-1">
-                        <div className="flex items-center justify-between gap-2">
-                          <p className="truncate text-sm font-semibold text-foreground">
-                            {account.name}
-                          </p>
-                          <p className="shrink-0 font-mono text-sm font-bold text-foreground">
-                            {formatCurrency(account.balance, account.currencies.code)}
-                          </p>
-                        </div>
-                        <div className="mt-1.5 flex items-center gap-2">
-                          <Progress value={pct} className="h-1.5 flex-1" />
-                          <span className="w-9 shrink-0 text-right text-[11px] text-muted-foreground">
-                            {pct.toFixed(0)}%
-                          </span>
-                        </div>
-                      </div>
-                      <Badge variant="secondary" className="shrink-0 text-[11px]">
-                        {account.type}
-                      </Badge>
-                    </div>
-                  );
-                })}
-              </div>
-            )}
-          </CardContent>
-        </Card>
-
-        {/* Objectives */}
-        <Card className="flex flex-col shadow-sm">
-          <CardHeader className="flex flex-row items-center justify-between border-b border-border pb-4">
-            <CardTitle className="flex items-center gap-2 text-[15px] font-semibold">
-              <Target className="h-4 w-4 text-primary" />
-              Objectives
-            </CardTitle>
-            <a
-              href="/objectives"
-              className="text-xs font-medium text-primary hover:underline"
-            >
-              View all →
-            </a>
-          </CardHeader>
-          <CardContent className="flex-1 pt-4">
-            {objectives.length === 0 ? (
-              <p className="py-6 text-center text-sm text-muted-foreground">
-                No objectives yet.{" "}
-                <a href="/objectives" className="text-primary hover:underline">
-                  Add one →
-                </a>
-              </p>
-            ) : (
-              <div className="space-y-4">
-                {activeObjectives.slice(0, 5).map((obj) => {
-                  const progress =
-                    obj.target_amount > 0
-                      ? (obj.current_saved / obj.target_amount) * 100
-                      : 0;
-                  return (
-                    <div key={obj.id} className="space-y-2">
-                      <div className="flex items-center justify-between gap-2">
-                        <div className="flex items-center gap-2">
-                          {obj.completed ? (
-                            <CircleCheck className="h-4 w-4 text-primary" />
-                          ) : (
-                            <Target className="h-4 w-4 text-muted-foreground" />
-                          )}
-                          <p className="text-sm font-semibold text-foreground">
-                            {obj.name}
-                          </p>
-                        </div>
-                        <p className="shrink-0 font-mono text-xs text-muted-foreground">
-                          {formatCurrency(obj.current_saved, obj.currencies.code)}
-                          {" / "}
-                          {formatCurrency(obj.target_amount, obj.currencies.code)}
-                        </p>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <Progress
-                          value={Math.min(progress, 100)}
-                          className="h-1.5 flex-1"
-                        />
-                        <span className="w-9 shrink-0 text-right text-[11px] font-medium text-muted-foreground">
-                          {progress.toFixed(0)}%
-                        </span>
-                      </div>
-                    </div>
-                  );
-                })}
-                {objectives.filter((o) => o.completed).length > 0 && (
-                  <p className="pt-1 text-xs text-muted-foreground">
-                    +{objectives.filter((o) => o.completed).length} completed
-                  </p>
-                )}
-              </div>
-            )}
-          </CardContent>
-        </Card>
-      </div>
-    </div>
+    <DashboardClient
+      series={series}
+      accounts={accountItems}
+      currencies={currencyItems}
+    />
   );
 }

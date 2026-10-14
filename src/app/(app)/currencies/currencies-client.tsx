@@ -8,13 +8,7 @@ import { Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+import { PageHeader, Panel, PanelHeader } from "@/components/metrics";
 import {
   Dialog,
   DialogContent,
@@ -57,66 +51,63 @@ export function CurrenciesClient({
   }
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <h1 className="text-3xl font-bold">Currencies</h1>
-        <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-          <DialogTrigger render={<Button />}>
-            <Plus className="h-4 w-4 mr-1" /> Add Currency
-          </DialogTrigger>
-          <DialogContent>
-            <DialogHeader>
-              <DialogTitle>Add Currency</DialogTitle>
-              <DialogDescription>
-                Add a new currency to use in your accounts and objectives
-              </DialogDescription>
-            </DialogHeader>
-            <form onSubmit={handleSubmit} className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="code">Currency Code</Label>
-                <Input
-                  id="code"
-                  name="code"
-                  placeholder="e.g. GBP"
-                  maxLength={5}
-                  required
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="name">Name</Label>
-                <Input
-                  id="name"
-                  name="name"
-                  placeholder="e.g. British Pound"
-                  required
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="symbol">Symbol</Label>
-                <Input
-                  id="symbol"
-                  name="symbol"
-                  placeholder="e.g. £"
-                  required
-                />
-              </div>
-              <Button type="submit" className="w-full" disabled={loading}>
-                {loading ? "Adding..." : "Add Currency"}
-              </Button>
-            </form>
-          </DialogContent>
-        </Dialog>
-      </div>
+    <div className="@container flex flex-col gap-5">
+      <PageHeader
+        title="Currencies"
+        subtitle="Currencies available to your accounts, loans and goals"
+        actions={
+          <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+            <DialogTrigger render={<Button />}>
+              <Plus /> Add Currency
+            </DialogTrigger>
+            <DialogContent>
+              <DialogHeader>
+                <DialogTitle>Add Currency</DialogTitle>
+                <DialogDescription>
+                  Add a new currency to use in your accounts and objectives
+                </DialogDescription>
+              </DialogHeader>
+              <form onSubmit={handleSubmit} className="space-y-4">
+                <div className="space-y-2">
+                  <Label htmlFor="code">Currency Code</Label>
+                  <Input
+                    id="code"
+                    name="code"
+                    placeholder="e.g. GBP"
+                    maxLength={5}
+                    required
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="name">Name</Label>
+                  <Input
+                    id="name"
+                    name="name"
+                    placeholder="e.g. British Pound"
+                    required
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="symbol">Symbol</Label>
+                  <Input
+                    id="symbol"
+                    name="symbol"
+                    placeholder="e.g. £"
+                    required
+                  />
+                </div>
+                <Button type="submit" className="w-full" disabled={loading}>
+                  {loading ? "Adding..." : "Add Currency"}
+                </Button>
+              </form>
+            </DialogContent>
+          </Dialog>
+        }
+      />
 
-      <Card>
-        <CardHeader>
-          <CardTitle>All Currencies</CardTitle>
-          <CardDescription>
-            {currencies.length} currenc{currencies.length !== 1 ? "ies" : "y"}{" "}
-            available
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
+      <Panel>
+        <PanelHeader title={`${currencies.length} currenc${currencies.length !== 1 ? "ies" : "y"}`} />
+        <div className="px-2 pb-2 @min-[460px]:px-3">
           <Table>
             <TableHeader>
               <TableRow>
@@ -135,8 +126,8 @@ export function CurrenciesClient({
               ))}
             </TableBody>
           </Table>
-        </CardContent>
-      </Card>
+        </div>
+      </Panel>
     </div>
   );
 }

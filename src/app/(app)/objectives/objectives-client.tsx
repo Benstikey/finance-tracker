@@ -9,7 +9,18 @@ import {
   toggleObjectiveComplete,
 } from "./actions";
 import type { ObjectiveWithCurrency, Currency } from "@/lib/types/database";
-import { formatCurrency } from "@/lib/exchange-rates";
+import {
+  convertCurrency,
+  formatCurrency,
+  type ExchangeRates,
+} from "@/lib/exchange-rates";
+import {
+  formatMAD,
+  MetricTabs,
+  PageHeader,
+  Panel,
+  SegmentedControl,
+} from "@/components/metrics";
 import {
   Target,
   CircleCheck,
@@ -77,7 +88,7 @@ function CircularProgress({
           strokeDasharray={circumference}
           strokeDashoffset={offset}
           strokeLinecap="round"
-          className="text-foreground transition-all duration-500 ease-out"
+          className="text-foreground transition-[stroke-dashoffset] duration-500 ease-out"
         />
       </svg>
       <div className="absolute inset-0 flex items-center justify-center">
@@ -224,14 +235,17 @@ function ObjectiveForm({
 export function ObjectivesClient({
   objectives,
   currencies,
+  rates,
 }: {
   objectives: ObjectiveWithCurrency[];
   currencies: Currency[];
+  rates: ExchangeRates;
 }) {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editObjective, setEditObjective] = useState<
     ObjectiveWithCurrency | undefined
   >();
+  const [view, setView] = useState<"active" | "completed">("active");
   const router = useRouter();
 
   async function handleDelete(id: string) {
@@ -248,44 +262,80 @@ export function ObjectivesClient({
   const activeObjectives = objectives.filter((o) => !o.completed);
   const completedObjectives = objectives.filter((o) => o.completed);
 
+  const toMAD = (amount: number, o: ObjectiveWithCurrency) =>
+    convertCurrency(amount, o.currencies.code, "MAD", rates);
+  const savedMAD = activeObjectives.reduce((s, o) => s + toMAD(o.current_saved, o), 0);
+  const targetMAD = activeObjectives.reduce((s, o) => s + toMAD(o.target_amount, o), 0);
+  const progress = targetMAD > 0 ? (savedMAD / targetMAD) * 100 : 0;
+
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-semibold tracking-tight">Objectives</h1>
-          <p className="text-muted-foreground">
-            Track your savings goals
-          </p>
-        </div>
-        <Dialog
-          open={dialogOpen}
-          onOpenChange={(open) => {
-            setDialogOpen(open);
-            if (!open) setEditObjective(undefined);
-          }}
-        >
-          <DialogTrigger render={<Button />}>
-            <Plus className="h-4 w-4 mr-1" /> Add Objective
-          </DialogTrigger>
-          <DialogContent>
-            <DialogHeader>
-              <DialogTitle>
-                {editObjective ? "Edit Objective" : "New Objective"}
-              </DialogTitle>
-              <DialogDescription>
-                {editObjective
-                  ? "Update your savings goal"
-                  : "Set a new savings target"}
-              </DialogDescription>
-            </DialogHeader>
-            <ObjectiveForm
-              currencies={currencies}
-              objective={editObjective}
-              onDone={() => setDialogOpen(false)}
-            />
-          </DialogContent>
-        </Dialog>
-      </div>
+    <div className="@container flex flex-col gap-5">
+      <PageHeader
+        title="Objectives"
+        subtitle="Savings goals · totals in MAD"
+        actions={
+          <Dialog
+            open={dialogOpen}
+            onOpenChange={(open) => {
+              setDialogOpen(open);
+              if (!open) setEditObjective(undefined);
+            }}
+          >
+            <DialogTrigger render={<Button />}>
+              <Plus /> Add Objective
+            </DialogTrigger>
+            <DialogContent>
+              <DialogHeader>
+                <DialogTitle>
+                  {editObjective ? "Edit Objective" : "New Objective"}
+                </DialogTitle>
+                <DialogDescription>
+                  {editObjective
+                    ? "Update your savings goal"
+                    : "Set a new savings target"}
+                </DialogDescription>
+              </DialogHeader>
+              <ObjectiveForm
+                currencies={currencies}
+                objective={editObjective}
+                onDone={() => setDialogOpen(false)}
+              />
+            </DialogContent>
+          </Dialog>
+        }
+      />
+
+      <Panel>
+        <MetricTabs
+          label="Savings summary"
+          tabs={[
+            {
+              key: "saved",
+              label: "Saved",
+              value: formatMAD(savedMAD),
+              footer: `across ${activeObjectives.length} active goal${activeObjectives.length !== 1 ? "s" : ""}`,
+            },
+            {
+              key: "target",
+              label: "Target",
+              value: formatMAD(targetMAD),
+              footer: "active goals combined",
+            },
+            {
+              key: "remaining",
+              label: "Remaining",
+              value: formatMAD(Math.max(targetMAD - savedMAD, 0)),
+              footer: "left to save",
+            },
+            {
+              key: "progress",
+              label: "Progress",
+              value: `${progress.toFixed(0)}%`,
+              footer: `${completedObjectives.length} completed`,
+            },
+          ]}
+        />
+      </Panel>
 
       {objectives.length === 0 ? (
         <Card>
@@ -302,8 +352,23 @@ export function ObjectivesClient({
         </Card>
       ) : (
         <>
-          {/* Active objectives */}
-          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+          <div className="flex items-center justify-between gap-3">
+            <h2 className="text-sm font-medium">
+              {view === "active" ? "Active goals" : "Completed goals"}
+            </h2>
+            <SegmentedControl
+              label="Show"
+              value={view}
+              onChange={setView}
+              options={[
+                { value: "active", label: `Active (${activeObjectives.length})` },
+                { value: "completed", label: `Completed (${completedObjectives.length})` },
+              ]}
+            />
+          </div>
+
+          {view === "active" && (
+          <div className="grid gap-4 @min-[640px]:grid-cols-2 @min-[960px]:grid-cols-3">
             {activeObjectives.map((obj) => {
               const progress =
                 obj.target_amount > 0
@@ -402,14 +467,22 @@ export function ObjectivesClient({
               );
             })}
           </div>
+          )}
 
-          {/* Completed objectives */}
-          {completedObjectives.length > 0 && (
+          {view === "active" && activeObjectives.length === 0 && (
+            <p className="py-8 text-center text-sm text-muted-foreground">
+              All your goals are completed.
+            </p>
+          )}
+
+          {view === "completed" && (
             <div className="space-y-3">
-              <h2 className="text-sm font-medium text-muted-foreground uppercase tracking-wider">
-                Completed
-              </h2>
-              <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-3">
+              {completedObjectives.length === 0 && (
+                <p className="py-8 text-center text-sm text-muted-foreground">
+                  No completed goals yet.
+                </p>
+              )}
+              <div className="grid gap-3 @min-[640px]:grid-cols-2 @min-[960px]:grid-cols-3">
                 {completedObjectives.map((obj) => (
                   <Card
                     key={obj.id}
