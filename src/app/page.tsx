@@ -1,18 +1,71 @@
 import { optionalUserId } from "@/lib/dal";
 import { redirect } from "next/navigation";
 import Link from "next/link";
-import {
-  Landmark,
-  TrendingUp,
-  Globe,
-  ShieldCheck,
-  BarChart3,
-  Wallet,
-  Target,
-  Handshake,
-  ArrowRight,
-  Check,
-} from "lucide-react";
+import { Lock, Wallet } from "lucide-react";
+import { Sparkline, WallTile } from "@/components/landing/mocks";
+import { ScreensTabs } from "@/components/landing/screens-tabs";
+import { Faq } from "@/components/landing/faq";
+import "./landing.css";
+
+const FAQS = [
+  {
+    q: "Do I need to connect my bank?",
+    a: "No. There is no bank sync at all. You add your accounts and record deposits and withdrawals yourself, so no credentials ever leave your hands.",
+  },
+  {
+    q: "Which currencies does it support?",
+    a: "Any currency you add. Every balance is converted with live exchange rates, so net worth, loans and goals all add up in one currency.",
+  },
+  {
+    q: "Where is my data stored?",
+    a: "In a private Postgres database. Every query is scoped to your account, and nothing is shared with advertisers or third parties.",
+  },
+  {
+    q: "Can I get my data out?",
+    a: "Yes. The net worth view exports your history as a CSV file for any range, ready for a spreadsheet.",
+  },
+  {
+    q: "Is it really free?",
+    a: "Yes. There is no trial, no card and no paid tier.",
+  },
+];
+
+function LogoMark({ size = 20 }: { size?: number }) {
+  return (
+    <span
+      className="grid place-items-center rounded-[6px] bg-[#0a0a0a] text-white"
+      style={{ width: size, height: size }}
+      aria-hidden
+    >
+      <Wallet size={size * 0.6} strokeWidth={2} />
+    </span>
+  );
+}
+
+function IsoWall() {
+  // The grid is rendered twice so the slow upward drift loops seamlessly.
+  const tiles = Array.from({ length: 36 }, (_, i) => i);
+  return (
+    <div className="lp-iso" aria-hidden>
+      <div className="lp-iso__plane">
+        <div className="lp-iso__track">
+          {[0, 1].map((copy) => (
+            <div key={copy} className="lp-iso__grid">
+              {tiles.map((i) => (
+                <div key={i} className="lp-iso__tile">
+                  <WallTile variant={i * 5 + Math.floor(i / 6)} />
+                </div>
+              ))}
+            </div>
+          ))}
+        </div>
+      </div>
+      <div className="lp-iso__blur lp-iso__blur--soft" />
+      <div className="lp-iso__blur lp-iso__blur--strong" />
+      <div className="lp-iso__blur lp-iso__blur--bottom" />
+    </div>
+  );
+}
 
 export default async function LandingPage() {
   // Redirect authenticated users straight to the app
@@ -20,399 +73,171 @@ export default async function LandingPage() {
   if (userId) redirect("/dashboard");
 
   return (
-    <div className="min-h-screen bg-white text-[#1E1B4B] font-sans">
-      {/* ── Nav ─────────────────────────────────────────────────────── */}
-      <header className="sticky top-0 z-50 border-b border-[#E0E7FF] bg-white/90 backdrop-blur-sm">
-        <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-4">
-          <div className="flex items-center gap-2">
-            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#6366F1]">
-              <Wallet className="h-4 w-4 text-white" />
-            </div>
-            <span className="text-lg font-bold tracking-tight text-[#1E1B4B]">
-              Finance
-            </span>
-          </div>
-          <div className="flex items-center gap-3">
-            <Link
-              href="/login"
-              className="text-sm font-medium text-[#64748B] transition-colors hover:text-[#1E1B4B]"
-            >
-              Sign in
-            </Link>
-            <Link
-              href="/login"
-              className="rounded-lg bg-[#6366F1] px-4 py-2 text-sm font-semibold text-white transition-[background-color,translate,scale] duration-150 ease-out hover:bg-[#4F46E5] hover:-translate-y-px active:scale-[0.96]"
-            >
-              Get started free
-            </Link>
-          </div>
+    <div className="lp">
+      <header className="relative z-30 mx-auto flex h-[68px] max-w-[1056px] items-center justify-between gap-4 px-6">
+        <div className="flex min-w-0 items-center gap-[30px]">
+          <Link href="/" className="flex items-center gap-[7px]" aria-label="Finance home">
+            <LogoMark />
+            <span className="text-[15px] font-medium tracking-[-0.15px]">Finance</span>
+          </Link>
+          <nav aria-label="Primary" className="hidden gap-0.5 sm:flex">
+            <a href="#screens" className="lp-nav__link">
+              Screens
+            </a>
+            <a href="#private" className="lp-nav__link">
+              Privacy
+            </a>
+            <a href="#faq" className="lp-nav__link">
+              FAQ
+            </a>
+          </nav>
+        </div>
+        <div className="flex items-center gap-1">
+          <Link href="/login" className="lp-btn lp-btn--sm lp-btn--secondary hidden sm:inline-flex">
+            Log in
+          </Link>
+          <Link href="/login" className="lp-btn lp-btn--sm lp-btn--primary">
+            Get started
+          </Link>
         </div>
       </header>
 
-      {/* ── Hero ─────────────────────────────────────────────────────── */}
-      <section className="mx-auto max-w-6xl px-6 pb-24 pt-20 text-center">
-        {/* Eyebrow */}
-        <div className="mb-6 inline-flex items-center gap-2 rounded-full border border-[#E0E7FF] bg-[#F5F3FF] px-4 py-1.5 text-xs font-semibold uppercase tracking-widest text-[#6366F1]">
-          No bank sync. No subscriptions. No noise.
-        </div>
+      <main className="px-6">
+        {/* ── Hero ───────────────────────────────────────────────────── */}
+        <section className="relative mx-auto flex max-w-[1008px] flex-col items-center justify-center pb-20 text-center min-[761px]:min-h-[620px] min-[761px]:py-[120px] min-[761px]:pb-[112px]">
+          <IsoWall />
+          <div className="lp-hero__copy relative z-10 flex max-w-[560px] flex-col items-center">
+            <h1 className="text-[34px] leading-[40px] font-medium tracking-[-1px] text-balance min-[761px]:text-[46px] min-[761px]:leading-[52px] min-[761px]:tracking-[-1.4px]">
+              Your money,
+              <br />
+              in plain sight
+            </h1>
+            <p className="max-w-[560px] pt-3.5 text-[15px] leading-[22px] text-pretty text-[#737373] min-[761px]:text-base min-[761px]:leading-6">
+              Every account, currency, loan and goal in one calm place.
+              <br className="hidden sm:block" /> No bank sync. Just the numbers you choose to enter.
+            </p>
+            <div className="flex gap-2 pt-7">
+              <Link href="/login" className="lp-btn lp-btn--lg lp-btn--primary">
+                Get started
+              </Link>
+              <Link href="/login" className="lp-btn lp-btn--lg lp-btn--secondary">
+                Log in
+              </Link>
+            </div>
+          </div>
+        </section>
 
-        {/* Headline */}
-        <h1 className="mx-auto max-w-3xl text-[clamp(2.5rem,6vw,4.5rem)] font-extrabold leading-[1.08] tracking-tight text-[#1E1B4B]">
-          Your wealth,{" "}
-          <span className="relative">
-            <span className="relative z-10">your rules.</span>
-            <span
-              className="absolute inset-x-0 bottom-2 -z-0 h-4 rounded"
-              style={{
-                background:
-                  "linear-gradient(90deg,#6366F1 0%,#818CF8 100%)",
-                opacity: 0.18,
-              }}
-            />
+        {/* ── Screens ────────────────────────────────────────────────── */}
+        <section id="screens" className="mx-auto max-w-[1008px] scroll-mt-6 pb-20 min-[761px]:pb-[112px]">
+          <h2 className="lp-lead">
+            Every view you need,
+            <br />
+            none of the noise
+          </h2>
+          <p className="lp-sub">
+            Net worth, accounts, cash flow, goals and loans. One quiet screen for each, all in
+            the currency you think in.
+          </p>
+          <ScreensTabs />
+        </section>
+
+        {/* ── Private by design ──────────────────────────────────────── */}
+        <section id="private" className="mx-auto max-w-[1008px] scroll-mt-6 pb-20 min-[761px]:pb-[112px]">
+          <h2 className="lp-lead">
+            Private by default,
+            <br />
+            yours to keep
+          </h2>
+          <div className="grid grid-cols-1 gap-3.5 pt-8 sm:grid-cols-2 md:grid-cols-3">
+            <article className="lp-tile">
+              <div className="lp-tile__stage" aria-hidden>
+                <div className="flex w-52 flex-col gap-2 rounded-[10px] bg-white p-3 shadow-[0_1px_1.5px_#0000000a,inset_0_0_0_1px_#0a0a0a0e]">
+                  <div className="flex items-center gap-2">
+                    <span className="grid size-7 place-items-center rounded-full bg-[#0000000a]">
+                      <Lock size={13} strokeWidth={1.75} />
+                    </span>
+                    <span className="text-[12px] font-medium">Bank connection</span>
+                  </div>
+                  <div className="flex items-center justify-between rounded-md bg-[#fafafa] px-2.5 py-2 text-[11px] text-[#737373]">
+                    Never asked for
+                    <span className="h-4 w-7 rounded-full bg-[#0000001a] p-0.5">
+                      <span className="block size-3 rounded-full bg-white shadow-sm" />
+                    </span>
+                  </div>
+                </div>
+              </div>
+              <h3 className="lp-tile__title">No bank connection</h3>
+              <p className="lp-tile__text">
+                You enter what you want, when you want. No credentials, no scraping, no surprises.
+              </p>
+            </article>
+
+            <article className="lp-tile">
+              <div className="lp-tile__stage" aria-hidden>
+                <div className="flex w-52 flex-col divide-y divide-[#f0f0f0] rounded-[10px] bg-white shadow-[0_1px_1.5px_#0000000a,inset_0_0_0_1px_#0a0a0a0e]">
+                  {[
+                    ["MAD", "1.0000"],
+                    ["EUR", "10.8412"],
+                    ["USD", "9.9530"],
+                  ].map(([code, rate]) => (
+                    <div key={code} className="flex items-center justify-between px-3 py-2 text-[12px]">
+                      <span className="font-medium">{code}</span>
+                      <span className="font-mono text-[#737373]">{rate}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+              <h3 className="lp-tile__title">Every currency, one total</h3>
+              <p className="lp-tile__text">
+                Hold dirhams, euros and dollars. Live rates keep your net worth in one number.
+              </p>
+            </article>
+
+            <article className="lp-tile sm:col-span-2 md:col-span-1">
+              <div className="lp-tile__stage" aria-hidden>
+                <div className="flex w-52 flex-col gap-1 rounded-[10px] bg-white p-3 shadow-[0_1px_1.5px_#0000000a,inset_0_0_0_1px_#0a0a0a0e]">
+                  <span className="text-[11px] text-[#737373]">Net worth · 90 days</span>
+                  <span className="text-[16px] font-semibold tracking-tight">142,800 MAD</span>
+                  <Sparkline className="h-12" />
+                </div>
+              </div>
+              <h3 className="lp-tile__title">History that builds itself</h3>
+              <p className="lp-tile__text">
+                Each deposit or withdrawal adds to a real timeline you can compare period by period.
+              </p>
+            </article>
+          </div>
+        </section>
+
+        {/* ── FAQ ────────────────────────────────────────────────────── */}
+        <section
+          id="faq"
+          aria-labelledby="lp-faq-title"
+          className="mx-auto max-w-[640px] scroll-mt-6 pb-28 min-[761px]:pb-[168px]"
+        >
+          <h2 id="lp-faq-title" className="lp-lead">
+            Questions,
+            <br />
+            answered
+          </h2>
+          <Faq items={FAQS} />
+          <div className="flex justify-center pt-10">
+            <Link href="/login" className="lp-btn lp-btn--lg lp-btn--primary">
+              Get started
+            </Link>
+          </div>
+        </section>
+      </main>
+
+      <footer className="border-t border-[#e5e5e5]">
+        <div className="mx-auto flex max-w-[1056px] flex-col items-center justify-between gap-3 px-6 py-8 text-[13px] text-[#737373] sm:flex-row">
+          <span className="flex items-center gap-[7px] text-[#0a0a0a]">
+            <LogoMark size={17} />
+            <span className="font-medium">Finance</span>
           </span>
-        </h1>
-
-        {/* Sub */}
-        <p className="mx-auto mt-6 max-w-xl text-lg leading-relaxed text-[#64748B]">
-          A dead-simple tracker for people who want a real picture of their
-          money — across every bank, wallet, currency, and goal — without
-          handing their credentials to anyone.
-        </p>
-
-        {/* CTAs */}
-        <div className="mt-10 flex flex-col items-center justify-center gap-3 sm:flex-row">
-          <Link
-            href="/login"
-            className="flex items-center gap-2 rounded-xl bg-[#6366F1] ps-7 pe-6.5 py-3.5 text-base font-semibold text-white shadow-lg shadow-indigo-200 transition-[background-color,box-shadow,translate,scale] duration-150 ease-out hover:bg-[#4F46E5] hover:-translate-y-0.5 hover:shadow-xl hover:shadow-indigo-300 active:scale-[0.96]"
-          >
-            Create your account
-            <ArrowRight className="h-4 w-4" />
-          </Link>
-          <Link
-            href="/login"
-            className="rounded-xl bg-white px-7 py-3.5 text-base font-semibold text-[#1E1B4B] shadow-(--shadow-border) transition-[color,box-shadow,scale] duration-150 ease-out hover:text-[#6366F1] hover:shadow-[0_0_0_1px_#6366F1] active:scale-[0.96]"
-          >
-            Sign in
-          </Link>
-        </div>
-
-        {/* Trust line */}
-        <p className="mt-5 text-xs text-[#94A3B8]">
-          Free forever · No credit card · No bank connection required
-        </p>
-
-        {/* App preview card */}
-        <div className="relative mx-auto mt-16 max-w-3xl overflow-hidden rounded-[16px] border border-[#E0E7FF] bg-[#F5F3FF] p-1 shadow-2xl shadow-indigo-100">
-          <div className="rounded-[12px] border border-[#E0E7FF] bg-white p-6">
-            {/* Fake browser chrome */}
-            <div className="mb-4 flex items-center gap-1.5">
-              <div className="h-2.5 w-2.5 rounded-full bg-[#FDA4AF]" />
-              <div className="h-2.5 w-2.5 rounded-full bg-[#FCD34D]" />
-              <div className="h-2.5 w-2.5 rounded-full bg-[#6EE7B7]" />
-              <div className="ml-3 h-5 w-48 rounded bg-[#F1F5F9] text-xs" />
-            </div>
-            {/* KPI row */}
-            <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-              {[
-                { label: "Net Worth", value: "142,800 MAD", up: true },
-                { label: "Accounts", value: "4 tracked", up: null },
-                { label: "Savings goal", value: "68%", up: true },
-                { label: "I'm owed", value: "2,500 MAD", up: null },
-              ].map((kpi) => (
-                <div
-                  key={kpi.label}
-                  className="rounded-lg border border-[#E0E7FF] p-3 text-left"
-                >
-                  <p className="text-xs text-[#94A3B8]">{kpi.label}</p>
-                  <p className="mt-1 text-base font-bold text-[#1E1B4B]">
-                    {kpi.value}
-                  </p>
-                  {kpi.up !== null && (
-                    <p className="mt-0.5 text-xs font-medium text-[#059669]">
-                      ↑ up this month
-                    </p>
-                  )}
-                </div>
-              ))}
-            </div>
-            {/* Fake chart bars */}
-            <div className="mt-4 flex h-20 items-end gap-1.5">
-              {[40, 55, 45, 60, 52, 70, 65, 80, 75, 90, 85, 100].map(
-                (h, i) => (
-                  <div
-                    key={i}
-                    className="flex-1 rounded-t"
-                    style={{
-                      height: `${h}%`,
-                      background:
-                        i === 11
-                          ? "#6366F1"
-                          : `rgba(99,102,241,${0.12 + i * 0.06})`,
-                    }}
-                  />
-                )
-              )}
-            </div>
-            <p className="mt-2 text-center text-xs text-[#94A3B8]">
-              Net worth over the last 12 months
-            </p>
-          </div>
-        </div>
-      </section>
-
-      {/* ── Problem strip ────────────────────────────────────────────── */}
-      <section className="bg-[#1E1B4B] py-16 text-white">
-        <div className="mx-auto max-w-4xl px-6 text-center">
-          <p className="text-sm font-semibold uppercase tracking-widest text-[#818CF8]">
-            The problem with every other finance app
-          </p>
-          <h2 className="mt-4 text-3xl font-bold leading-tight sm:text-4xl">
-            They want your bank login.
-            <br />
-            <span className="text-[#818CF8]">You just want clarity.</span>
-          </h2>
-          <p className="mx-auto mt-5 max-w-2xl text-base leading-relaxed text-[#94A3B8]">
-            Most trackers lock you into automatic bank syncing, subscription
-            fees, or endless categorisation rules. They profit from your data
-            while pretending to help you. This app does none of that — you
-            enter what you want, when you want, and you stay in full control.
-          </p>
-
-          {/* Comparison */}
-          <div className="mt-10 grid gap-4 sm:grid-cols-2">
-            <div className="rounded-xl border border-white/10 bg-white/5 p-5 text-left">
-              <p className="mb-3 text-sm font-semibold text-red-400">
-                😮‍💨 Other apps
-              </p>
-              {[
-                "Require your bank credentials",
-                "Auto-sync = you lose control",
-                "Force you to categorise every latte",
-                "Expensive subscriptions",
-                "Sell your spending data",
-                "Overwhelm you with charts you never asked for",
-              ].map((t) => (
-                <div key={t} className="flex items-start gap-2 py-1.5 text-sm text-[#94A3B8]">
-                  <span className="mt-0.5 text-red-400">✕</span>
-                  {t}
-                </div>
-              ))}
-            </div>
-            <div className="rounded-xl border border-[#6366F1]/30 bg-[#6366F1]/10 p-5 text-left">
-              <p className="mb-3 text-sm font-semibold text-[#818CF8]">
-                ✦ This app
-              </p>
-              {[
-                "Zero bank connection — fully private",
-                "You decide what to track and when",
-                "Multi-currency with live exchange rates",
-                "Free, with no strings attached",
-                "Your data stays yours",
-                "One clear view: net worth, goals, cash flow",
-              ].map((t) => (
-                <div key={t} className="flex items-start gap-2 py-1.5 text-sm text-white">
-                  <Check className="mt-0.5 h-4 w-4 shrink-0 text-[#059669]" />
-                  {t}
-                </div>
-              ))}
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* ── Features ─────────────────────────────────────────────────── */}
-      <section className="mx-auto max-w-6xl px-6 py-24">
-        <div className="text-center">
-          <p className="text-sm font-semibold uppercase tracking-widest text-[#6366F1]">
-            What you actually get
-          </p>
-          <h2 className="mt-3 text-3xl font-bold tracking-tight text-[#1E1B4B] sm:text-4xl">
-            Every tool you need. Nothing you don&apos;t.
-          </h2>
-        </div>
-
-        <div className="mt-14 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
-          {[
-            {
-              icon: Landmark,
-              color: "#6366F1",
-              bg: "#EEF2FF",
-              title: "Multi-account tracking",
-              desc: "Banks, digital wallets, and cash — all in one place. Add as many accounts as you have, in any currency.",
-            },
-            {
-              icon: Globe,
-              color: "#059669",
-              bg: "#ECFDF5",
-              title: "Live multi-currency",
-              desc: "Hold MAD, EUR, USD, or any currency. Exchange rates update automatically so your net worth is always accurate.",
-            },
-            {
-              icon: TrendingUp,
-              color: "#818CF8",
-              bg: "#F5F3FF",
-              title: "Net worth graph",
-              desc: "Every deposit or withdrawal you record builds a real historical chart. Watch your wealth grow — day by day.",
-            },
-            {
-              icon: Target,
-              color: "#F59E0B",
-              bg: "#FFFBEB",
-              title: "Savings objectives",
-              desc: "Set a goal, track your progress. Whether it's a trip, a car, or an emergency fund — see exactly how close you are.",
-            },
-            {
-              icon: Handshake,
-              color: "#EC4899",
-              bg: "#FDF2F8",
-              title: "Loan tracking",
-              desc: "Track money you've lent and borrowed. Know at a glance who owes you, and what you owe, without spreadsheets.",
-            },
-            {
-              icon: BarChart3,
-              color: "#0EA5E9",
-              bg: "#F0F9FF",
-              title: "Cash flow calendar",
-              desc: "Map your recurring income and expenses on a monthly calendar. See your projected balance before the month even starts.",
-            },
-          ].map(({ icon: Icon, color, bg, title, desc }) => (
-            <div
-              key={title}
-              className="group rounded-2xl bg-white p-6 shadow-(--shadow-border) transition-[box-shadow,translate] duration-150 ease-out hover:shadow-(--shadow-border-hover) hover:-translate-y-0.5"
-            >
-              <div
-                className="mb-4 flex h-11 w-11 items-center justify-center rounded-xl"
-                style={{ background: bg }}
-              >
-                <Icon className="h-5 w-5" style={{ color }} />
-              </div>
-              <h3 className="text-base font-bold text-[#1E1B4B]">{title}</h3>
-              <p className="mt-2 text-sm leading-relaxed text-[#64748B]">
-                {desc}
-              </p>
-            </div>
-          ))}
-        </div>
-      </section>
-
-      {/* ── How it works ─────────────────────────────────────────────── */}
-      <section className="bg-[#F5F3FF] py-24">
-        <div className="mx-auto max-w-5xl px-6">
-          <div className="text-center">
-            <p className="text-sm font-semibold uppercase tracking-widest text-[#6366F1]">
-              Up in 60 seconds
-            </p>
-            <h2 className="mt-3 text-3xl font-bold tracking-tight text-[#1E1B4B] sm:text-4xl">
-              Getting started is embarrassingly simple
-            </h2>
-          </div>
-
-          <div className="mt-14 grid gap-8 sm:grid-cols-3">
-            {[
-              {
-                step: "01",
-                title: "Create your account",
-                desc: "Sign up with just an email. No bank connection, no credit card, no onboarding wizard.",
-              },
-              {
-                step: "02",
-                title: "Add your accounts",
-                desc: "Enter your banks, wallets, and cash. Set the current balance. Done. That's all the setup there is.",
-              },
-              {
-                step: "03",
-                title: "Record transactions",
-                desc: "Log deposits and withdrawals with the date they happened. Your net worth graph builds itself.",
-              },
-            ].map(({ step, title, desc }) => (
-              <div key={step} className="relative text-center">
-                <div className="mx-auto mb-5 flex h-14 w-14 items-center justify-center rounded-2xl bg-[#6366F1] text-xl font-extrabold text-white shadow-lg shadow-indigo-200">
-                  {step}
-                </div>
-                <h3 className="text-lg font-bold text-[#1E1B4B]">{title}</h3>
-                <p className="mt-2 text-sm leading-relaxed text-[#64748B]">
-                  {desc}
-                </p>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* ── Differentiator callout ─────────────────────────────────── */}
-      <section className="mx-auto max-w-4xl px-6 py-24">
-        <div className="rounded-3xl bg-white p-10 text-center shadow-(--shadow-border)">
-          <ShieldCheck className="mx-auto mb-5 h-12 w-12 text-[#059669]" />
-          <h2 className="text-2xl font-extrabold text-[#1E1B4B] sm:text-3xl">
-            Your data never leaves your account
-          </h2>
-          <p className="mx-auto mt-4 max-w-xl text-base leading-relaxed text-[#64748B]">
-            There are no algorithms reading your transactions, no ad targeting
-            based on your spending, and no third-party financial institutions
-            involved. Every number you enter is stored privately under your
-            own Supabase account — visible only to you.
-          </p>
-          <div className="mt-8 flex flex-wrap justify-center gap-3">
-            {[
-              "No bank credentials",
-              "No data selling",
-              "No AI reading your transactions",
-              "No ads",
-            ].map((t) => (
-              <span
-                key={t}
-                className="flex items-center gap-1.5 rounded-full border border-[#E0E7FF] bg-[#F5F3FF] px-4 py-1.5 text-sm font-medium text-[#6366F1]"
-              >
-                <Check className="h-3.5 w-3.5" />
-                {t}
-              </span>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* ── Final CTA ─────────────────────────────────────────────────── */}
-      <section className="bg-[#6366F1] py-24">
-        <div className="mx-auto max-w-2xl px-6 text-center">
-          <h2 className="text-3xl font-extrabold leading-tight text-white sm:text-4xl">
-            Ready to actually understand
-            <br />
-            your finances?
-          </h2>
-          <p className="mx-auto mt-5 max-w-lg text-base leading-relaxed text-indigo-200">
-            No trial period. No credit card. No bank sync.
-            Just sign up and start getting clarity on your money today.
-          </p>
-          <Link
-            href="/login"
-            className="mt-10 inline-flex items-center gap-2 rounded-xl bg-white ps-8 pe-7.5 py-4 text-base font-bold text-[#6366F1] shadow-lg transition-[box-shadow,translate,scale] duration-150 ease-out hover:-translate-y-0.5 hover:shadow-xl active:scale-[0.96]"
-          >
-            Create your free account
-            <ArrowRight className="h-4 w-4" />
-          </Link>
-          <p className="mt-4 text-sm text-indigo-300">
-            Free forever · Setup in under 60 seconds
-          </p>
-        </div>
-      </section>
-
-      {/* ── Footer ─────────────────────────────────────────────────────── */}
-      <footer className="border-t border-[#E0E7FF] bg-white py-10">
-        <div className="mx-auto flex max-w-6xl flex-col items-center justify-between gap-4 px-6 sm:flex-row">
-          <div className="flex items-center gap-2">
-            <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-[#6366F1]">
-              <Wallet className="h-3.5 w-3.5 text-white" />
-            </div>
-            <span className="text-sm font-bold text-[#1E1B4B]">Finance</span>
-          </div>
-          <p className="text-xs text-[#94A3B8]">
-            Built for people who want clarity, not complexity.
-          </p>
-          <Link
-            href="/login"
-            className="text-sm font-semibold text-[#6366F1] hover:underline"
-          >
-            Sign in →
+          <span>A private, multi-currency finance tracker.</span>
+          <Link href="/login" className="lp-nav__link">
+            Log in
           </Link>
         </div>
       </footer>

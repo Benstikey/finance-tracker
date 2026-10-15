@@ -254,7 +254,7 @@ function TransactionDialog({
             onClick={() => setTxType("deposit")}
             className={`flex items-center gap-2 rounded-lg border p-2.5 text-sm transition-colors ${
               txType === "deposit"
-                ? "border-green-500 bg-green-50 dark:bg-green-950/20 font-medium text-green-700 dark:text-green-400"
+                ? "border-primary bg-primary/5 font-medium"
                 : "border-border hover:border-primary/50"
             }`}
           >
@@ -266,7 +266,7 @@ function TransactionDialog({
             onClick={() => setTxType("withdrawal")}
             className={`flex items-center gap-2 rounded-lg border p-2.5 text-sm transition-colors ${
               txType === "withdrawal"
-                ? "border-red-500 bg-red-50 dark:bg-red-950/20 font-medium text-red-700 dark:text-red-400"
+                ? "border-primary bg-primary/5 font-medium"
                 : "border-border hover:border-primary/50"
             }`}
           >
@@ -312,11 +312,7 @@ function TransactionDialog({
 
       <Button
         type="submit"
-        className={`w-full h-11 ${
-          txType === "deposit"
-            ? "bg-green-600 hover:bg-green-700 text-white"
-            : "bg-red-600 hover:bg-red-700 text-white"
-        }`}
+        className="w-full h-11"
         disabled={loading}
       >
         {loading
@@ -452,9 +448,9 @@ function AccountRow({
                     >
                       <div className="flex items-center gap-3">
                         {tx.amount >= 0 ? (
-                          <ArrowUpCircle className="h-4 w-4 text-green-500 shrink-0" />
+                          <ArrowUpCircle className="h-4 w-4 text-foreground shrink-0" />
                         ) : (
-                          <ArrowDownCircle className="h-4 w-4 text-red-500 shrink-0" />
+                          <ArrowDownCircle className="h-4 w-4 text-muted-foreground shrink-0" />
                         )}
                         <div>
                           <p className="font-medium">
