@@ -17,7 +17,6 @@ import {
   type ExchangeRates,
 } from "@/lib/exchange-rates";
 import {
-  formatMAD,
   madFormat,
   MetricTabs,
   PageHeader,
@@ -25,6 +24,7 @@ import {
   PanelHeader,
   RankedList,
 } from "@/components/metrics";
+import { useMoney } from "@/components/display-currency";
 import {
   ArrowUpRight,
   ArrowDownLeft,
@@ -486,17 +486,18 @@ export function LoansClient({
   const [filter, setFilter] = useState<LoanFilter>("lent");
   const router = useRouter();
 
+  const money = useMoney();
   // Active loans count what's still outstanding; settled ones their full amount.
-  const toMAD = (l: LoanWithCurrency) =>
-    convertCurrency(l.settled ? l.amount : outstanding(l), l.currencies.code, "MAD", rates);
-  const sumMAD = (ls: LoanWithCurrency[]) => ls.reduce((s, l) => s + toMAD(l), 0);
+  const toBase = (l: LoanWithCurrency) =>
+    convertCurrency(l.settled ? l.amount : outstanding(l), l.currencies.code, money.code, rates);
+  const sumBase = (ls: LoanWithCurrency[]) => ls.reduce((s, l) => s + toBase(l), 0);
   const plural = (n: number, word: string) => `${n} ${word}${n !== 1 ? "s" : ""}`;
 
   const active = loans.filter((l) => !l.settled);
   const settled = loans.filter((l) => l.settled);
   const activeLent = active.filter((l) => l.direction === "lent");
   const activeBorrowed = active.filter((l) => l.direction === "borrowed");
-  const net = sumMAD(activeLent) - sumMAD(activeBorrowed);
+  const net = sumBase(activeLent) - sumBase(activeBorrowed);
 
   const visible =
     filter === "lent"
@@ -510,7 +511,7 @@ export function LoansClient({
   // Net position per person: positive = they owe me.
   const byPersonMap = new Map<string, number>();
   for (const l of active) {
-    const signed = l.direction === "lent" ? toMAD(l) : -toMAD(l);
+    const signed = l.direction === "lent" ? toBase(l) : -toBase(l);
     byPersonMap.set(l.person, (byPersonMap.get(l.person) ?? 0) + signed);
   }
   const byPerson = [...byPersonMap]
@@ -538,7 +539,7 @@ export function LoansClient({
     <div className="@container flex flex-col gap-5">
       <PageHeader
         title="Loans"
-        subtitle="Money you lent and borrowed · MAD"
+        subtitle={`Money you lent and borrowed · ${money.code}`}
         actions={
           <Dialog
             open={dialogOpen}
@@ -580,25 +581,25 @@ export function LoansClient({
             {
               key: "lent",
               label: "Owed to me",
-              value: formatMAD(sumMAD(activeLent)),
+              value: money.format(sumBase(activeLent)),
               footer: plural(activeLent.length, "active loan"),
             },
             {
               key: "borrowed",
               label: "I owe",
-              value: formatMAD(sumMAD(activeBorrowed)),
+              value: money.format(sumBase(activeBorrowed)),
               footer: plural(activeBorrowed.length, "active loan"),
             },
             {
               key: "active",
               label: "Net position",
-              value: `${net < 0 ? "−" : ""}${formatMAD(Math.abs(net))}`,
+              value: `${net < 0 ? "−" : ""}${money.format(Math.abs(net))}`,
               footer: net >= 0 ? "in your favour" : "you owe overall",
             },
             {
               key: "settled",
               label: "Settled",
-              value: formatMAD(sumMAD(settled)),
+              value: money.format(sumBase(settled)),
               footer: plural(settled.length, "loan"),
             },
           ]}
@@ -646,7 +647,7 @@ export function LoansClient({
 
       <RankedList
         title="By person · active loans"
-        unit="MAD"
+        unit={money.code}
         items={byPerson}
         empty="No active loans."
         format={(v) => `${v > 0 ? "+" : v < 0 ? "−" : ""}${madFormat.format(Math.abs(v))}`}

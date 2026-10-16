@@ -27,17 +27,17 @@ export default function LoginPage() {
         </div>
         <div className="space-y-4">
           <blockquote className="text-lg font-medium leading-relaxed opacity-90">
-            &ldquo;Track every dirham, dollar, and euro — all in one place.&rdquo;
+            &ldquo;Track every dollar, euro and pound, all in one place.&rdquo;
           </blockquote>
           <div className="flex gap-3 text-sm opacity-70">
-            <span className="rounded-full border border-primary-foreground/20 px-3 py-1">
-              MAD
-            </span>
             <span className="rounded-full border border-primary-foreground/20 px-3 py-1">
               USD
             </span>
             <span className="rounded-full border border-primary-foreground/20 px-3 py-1">
               EUR
+            </span>
+            <span className="rounded-full border border-primary-foreground/20 px-3 py-1">
+              GBP
             </span>
           </div>
         </div>

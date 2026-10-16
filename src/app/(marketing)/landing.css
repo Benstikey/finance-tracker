@@ -1,4 +1,7 @@
 /* Landing page. Monochrome, scoped under .lp so the app is unaffected. */
+/* In the components layer so Tailwind utilities (hidden, sm:inline-flex…)
+   can override these defaults. */
+@layer components {
 
 .lp {
   --lp-max: 1008px;
@@ -87,9 +90,23 @@
   transition-duration: var(--lp-duration);
   transition-timing-function: ease;
 }
+.lp-nav__link[aria-current="page"] {
+  color: var(--lp-text);
+}
 .lp-nav__link:hover {
   background: var(--lp-hover-bg);
   color: var(--lp-text);
+}
+
+.lp-pop {
+  transform-origin: top right;
+  animation: lp-pop 0.18s var(--lp-ease) both;
+}
+@keyframes lp-pop {
+  from {
+    opacity: 0;
+    transform: translateY(-4px) scale(0.98);
+  }
 }
 
 /* ── Hero ────────────────────────────────────────────────────────────── */
@@ -389,7 +406,9 @@
   .lp-iso,
   .lp-iso__track,
   .lp-hero__copy > *,
-  .lp-screen-in {
+  .lp-screen-in,
+  .lp-pop {
     animation: none;
   }
+}
 }

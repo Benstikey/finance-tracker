@@ -29,7 +29,7 @@ export const metadata: Metadata = {
     "loan tracker",
     "savings goals",
     "cash flow forecast",
-    "MAD EUR USD",
+    "USD EUR GBP",
     "no bank sync",
   ],
   openGraph: {

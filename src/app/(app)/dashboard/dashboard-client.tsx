@@ -7,7 +7,8 @@ import {
   type Kpi,
   type KpiDimension,
 } from "@/components/kpi-drilldown";
-import { formatMAD, RankedList, type RankedItem } from "@/components/metrics";
+import { RankedList, type RankedItem } from "@/components/metrics";
+import { useMoney } from "@/components/display-currency";
 
 export type DashboardSeries = {
   end: string;
@@ -27,26 +28,25 @@ const DIMENSIONS: KpiDimension[] = [
   { value: "source", label: "Source" },
 ];
 
-const signedMAD = (v: number) =>
-  `${v > 0 ? "+" : v < 0 ? "−" : ""}${formatMAD(Math.abs(v))}`;
-
 function share(part: number[], whole: number[]) {
   return part.map((v, i) => (whole[i] > 0 ? (v / whole[i]) * 100 : 0));
 }
 
-function buildKpis(s: DashboardSeries): Kpi[] {
+function buildKpis(s: DashboardSeries, money: ReturnType<typeof useMoney>): Kpi[] {
+  const formatMoney = money.format;
+  const signedMoney = money.formatSigned;
   const total = s.netWorth.map((v, i) => v + s.lent[i] - s.borrowed[i]);
   const foreign = s.netWorth.map(
     (v, i) =>
-      v - (s.currencies.find((c) => c.code === "MAD")?.balance[i] ?? 0)
+      v - (s.currencies.find((c) => c.code === money.code)?.balance[i] ?? 0)
   );
 
   return [
     {
       id: "net-worth",
       label: "Net worth",
-      description: "The sum of every account balance, converted to MAD.",
-      format: formatMAD,
+      description: `The sum of every account balance, converted to ${money.code}.`,
+      format: formatMoney,
       series: s.netWorth,
       breakdowns: {
         account: s.accounts.map((a) => ({ id: a.id, label: a.name, series: a.balance })),
@@ -57,7 +57,7 @@ function buildKpis(s: DashboardSeries): Kpi[] {
       id: "owed-to-me",
       label: "Owed to me",
       description: "Money you lent that hasn't been settled yet.",
-      format: formatMAD,
+      format: formatMoney,
       series: s.lent,
       breakdowns: {
         person: s.people.lent.map((p) => ({ id: p.name, label: p.name, series: p.series })),
@@ -68,7 +68,7 @@ function buildKpis(s: DashboardSeries): Kpi[] {
       label: "I owe",
       description: "Money you borrowed that you haven't paid back yet.",
       lowerIsBetter: true,
-      format: formatMAD,
+      format: formatMoney,
       series: s.borrowed,
       breakdowns: {
         person: s.people.borrowed.map((p) => ({ id: p.name, label: p.name, series: p.series })),
@@ -78,7 +78,7 @@ function buildKpis(s: DashboardSeries): Kpi[] {
       id: "total",
       label: "Total with loans",
       description: "Net worth plus what you're owed, minus what you owe.",
-      format: signedMAD,
+      format: signedMoney,
       series: total,
       breakdowns: {
         source: [
@@ -94,7 +94,7 @@ function buildKpis(s: DashboardSeries): Kpi[] {
       description:
         "Deposits minus withdrawals recorded in the period. The chart shows each day's total.",
       kind: "total",
-      format: signedMAD,
+      format: signedMoney,
       series: s.flow,
       breakdowns: {
         account: s.accounts.map((a) => ({ id: a.id, label: a.name, series: a.flow })),
@@ -104,7 +104,7 @@ function buildKpis(s: DashboardSeries): Kpi[] {
     {
       id: "foreign-share",
       label: "Held in foreign currency",
-      description: "The share of your net worth that isn't in MAD, at today's rates.",
+      description: `The share of your net worth that isn't in ${money.code}, at today's rates.`,
       kind: "rate",
       series: share(foreign, s.netWorth),
       breakdowns: {
@@ -127,7 +127,8 @@ export function DashboardClient({
   accounts: RankedItem[];
   currencies: RankedItem[];
 }) {
-  const kpis = useMemo(() => buildKpis(series), [series]);
+  const money = useMoney();
+  const kpis = useMemo(() => buildKpis(series, money), [series, money]);
 
   // The open metric lives in the URL so a detail view can be shared.
   const router = useRouter();
@@ -159,13 +160,13 @@ export function DashboardClient({
       <div className="grid gap-5 @min-[640px]:grid-cols-2">
         <RankedList
           title="Accounts"
-          unit="MAD"
+          unit={money.code}
           items={accounts}
           empty="No accounts yet."
         />
         <RankedList
           title="Currencies"
-          unit="MAD"
+          unit={money.code}
           items={currencies}
           empty="No balances yet."
         />

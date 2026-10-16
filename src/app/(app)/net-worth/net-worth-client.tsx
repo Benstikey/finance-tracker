@@ -5,7 +5,6 @@ import {
   CompareToggle,
   DeltaBadge,
   ExportButton,
-  formatMAD,
   madFormat,
   MetricTabs,
   PageHeader,
@@ -17,6 +16,7 @@ import {
   toTrend,
   TrendChart,
 } from "@/components/metrics";
+import { useMoney } from "@/components/display-currency";
 
 export type NetWorthRow = {
   date: string;
@@ -38,6 +38,7 @@ export function NetWorthClient({
   history: NetWorthRow[];
   accountMeta: AccountMeta[];
 }) {
+  const money = useMoney();
   const [selected, setSelected] = useState<string>(TOTAL);
   const [rangeDays, setRangeDays] = useState<number>(90);
   const [compare, setCompare] = useState(false);
@@ -84,7 +85,7 @@ export function NetWorthClient({
     <div className="@container flex flex-col gap-5">
       <PageHeader
         title="Net Worth"
-        subtitle={`Balance per account · MAD · ${range.long}`}
+        subtitle={`Balance per account · ${money.code} · ${range.long}`}
         actions={
           <>
             <RangeControl value={rangeDays} onChange={setRangeDays} />
@@ -113,7 +114,7 @@ export function NetWorthClient({
             return {
               key: s.key,
               label: s.label,
-              value: formatMAD(b),
+              value: money.format(b),
               footer: <DeltaBadge first={a} last={b} />,
             };
           })}
@@ -129,13 +130,13 @@ export function NetWorthClient({
       <div className="grid gap-5 @min-[640px]:grid-cols-2">
         <RankedList
           title="Balances"
-          unit="MAD"
+          unit={money.code}
           items={balances}
           empty="No accounts yet."
         />
         <RankedList
           title={`Change · ${range.long.toLowerCase()}`}
-          unit="MAD"
+          unit={money.code}
           items={changes}
           empty="No transactions in this period."
           format={(v) => `${v > 0 ? "+" : v < 0 ? "−" : ""}${madFormat.format(Math.abs(v))}`}

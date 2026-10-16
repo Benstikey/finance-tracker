@@ -3,7 +3,8 @@
 import { useState, useMemo } from "react";
 import type { CashFlowWithCurrency } from "@/lib/types/database";
 import type { ExchangeRates } from "@/lib/exchange-rates";
-import { convertCurrency, formatCurrency } from "@/lib/exchange-rates";
+import { convertCurrency } from "@/lib/exchange-rates";
+import { useMoney } from "@/components/display-currency";
 import { ChevronLeft, ChevronRight, TrendingUp, TrendingDown } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -23,19 +24,20 @@ function getDaysInMonth(year: number, month: number): number {
 function doesCashFlowTrigger(
   cf: CashFlowWithCurrency,
   date: Date,
-  rates: ExchangeRates
-): { triggers: boolean; amountMAD: number } {
+  rates: ExchangeRates,
+  base: string
+): { triggers: boolean; converted: number } {
   const startDate = new Date(cf.start_date + "T00:00:00");
   const endDate = cf.end_date ? new Date(cf.end_date + "T00:00:00") : null;
 
   // Check if date is within range
-  if (date < startDate) return { triggers: false, amountMAD: 0 };
-  if (endDate && date > endDate) return { triggers: false, amountMAD: 0 };
+  if (date < startDate) return { triggers: false, converted: 0 };
+  if (endDate && date > endDate) return { triggers: false, converted: 0 };
 
-  const amountMAD = convertCurrency(
+  const converted = convertCurrency(
     cf.amount,
     cf.currencies.code,
-    "MAD",
+    base,
     rates
   );
 
@@ -46,14 +48,14 @@ function doesCashFlowTrigger(
           date.getFullYear() === startDate.getFullYear() &&
           date.getMonth() === startDate.getMonth() &&
           date.getDate() === startDate.getDate(),
-        amountMAD,
+        converted,
       };
     case "daily":
-      return { triggers: true, amountMAD };
+      return { triggers: true, converted };
     case "weekly":
       return {
         triggers: date.getDay() === startDate.getDay(),
-        amountMAD,
+        converted,
       };
     case "monthly": {
       const targetDay = cf.day_of_month || startDate.getDate();
@@ -61,7 +63,7 @@ function doesCashFlowTrigger(
       const effectiveDay = Math.min(targetDay, daysInMonth);
       return {
         triggers: date.getDate() === effectiveDay,
-        amountMAD,
+        converted,
       };
     }
     case "yearly":
@@ -69,10 +71,10 @@ function doesCashFlowTrigger(
         triggers:
           date.getMonth() === startDate.getMonth() &&
           date.getDate() === startDate.getDate(),
-        amountMAD,
+        converted,
       };
     default:
-      return { triggers: false, amountMAD: 0 };
+      return { triggers: false, converted: 0 };
   }
 }
 
@@ -82,7 +84,8 @@ function computeBalanceUpToMonth(
   targetMonth: number,
   cashFlows: CashFlowWithCurrency[],
   startingBalance: number,
-  rates: ExchangeRates
+  rates: ExchangeRates,
+  base: string
 ): number {
   const today = new Date();
   const startOfTarget = new Date(targetYear, targetMonth, 1);
@@ -96,9 +99,9 @@ function computeBalanceUpToMonth(
 
   while (cursor < startOfTarget) {
     for (const cf of cashFlows) {
-      const { triggers, amountMAD } = doesCashFlowTrigger(cf, cursor, rates);
+      const { triggers, converted } = doesCashFlowTrigger(cf, cursor, rates, base);
       if (triggers) {
-        balance += cf.type === "income" ? amountMAD : -amountMAD;
+        balance += cf.type === "income" ? converted : -converted;
       }
     }
     cursor.setDate(cursor.getDate() + 1);
@@ -112,7 +115,8 @@ function computeMonthData(
   month: number,
   cashFlows: CashFlowWithCurrency[],
   startingBalance: number,
-  rates: ExchangeRates
+  rates: ExchangeRates,
+  base: string
 ): DayData[] {
   // Get cumulative balance up to this month
   const balanceAtMonthStart = computeBalanceUpToMonth(
@@ -120,7 +124,8 @@ function computeMonthData(
     month,
     cashFlows,
     startingBalance,
-    rates
+    rates,
+    base
   );
 
   const daysInMonth = getDaysInMonth(year, month);
@@ -143,12 +148,12 @@ function computeMonthData(
 
     if (!isPastOrToday) {
       for (const cf of cashFlows) {
-        const { triggers, amountMAD } = doesCashFlowTrigger(cf, date, rates);
+        const { triggers, converted } = doesCashFlowTrigger(cf, date, rates, base);
         if (triggers) {
           if (cf.type === "income") {
-            income.push({ name: cf.name, amount: amountMAD });
+            income.push({ name: cf.name, amount: converted });
           } else {
-            expenses.push({ name: cf.name, amount: amountMAD });
+            expenses.push({ name: cf.name, amount: converted });
           }
         }
       }
@@ -173,21 +178,22 @@ const MONTHS = [
 
 export function CashFlowCalendar({
   cashFlows,
-  currentBalanceMAD,
+  currentBalance,
   rates,
 }: {
   cashFlows: CashFlowWithCurrency[];
-  currentBalanceMAD: number;
+  currentBalance: number;
   rates: ExchangeRates;
 }) {
+  const { code: base, format: money } = useMoney();
   const today = new Date();
   const [viewYear, setViewYear] = useState(today.getFullYear());
   const [viewMonth, setViewMonth] = useState(today.getMonth());
 
   const days = useMemo(
     () =>
-      computeMonthData(viewYear, viewMonth, cashFlows, currentBalanceMAD, rates),
-    [viewYear, viewMonth, cashFlows, currentBalanceMAD, rates]
+      computeMonthData(viewYear, viewMonth, cashFlows, currentBalance, rates, base),
+    [viewYear, viewMonth, cashFlows, currentBalance, rates, base]
   );
 
   // Compute first day offset (Monday-based)
@@ -204,7 +210,7 @@ export function CashFlowCalendar({
     0
   );
   const monthlyNet = monthlyIncome - monthlyExpenses;
-  const endOfMonthBalance = days.length > 0 ? days[days.length - 1].runningBalance : currentBalanceMAD;
+  const endOfMonthBalance = days.length > 0 ? days[days.length - 1].runningBalance : currentBalance;
 
   function prevMonth() {
     if (viewMonth === 0) {
@@ -252,26 +258,26 @@ export function CashFlowCalendar({
           <div className="rounded-lg bg-muted p-2.5">
             <p className="text-xs text-muted-foreground">Income</p>
             <p className="text-sm font-mono font-bold">
-              +{formatCurrency(monthlyIncome, "MAD")}
+              +{money(monthlyIncome)}
             </p>
           </div>
           <div className="rounded-lg bg-muted p-2.5">
             <p className="text-xs text-muted-foreground">Expenses</p>
             <p className="text-sm font-mono font-bold">
-              -{formatCurrency(monthlyExpenses, "MAD")}
+              −{money(monthlyExpenses)}
             </p>
           </div>
           <div className="rounded-lg bg-muted p-2.5">
             <p className="text-xs text-muted-foreground">Net</p>
             <p className="text-sm font-mono font-bold">
               {monthlyNet >= 0 ? "+" : ""}
-              {formatCurrency(monthlyNet, "MAD")}
+              {monthlyNet < 0 ? "−" : ""}{money(Math.abs(monthlyNet))}
             </p>
           </div>
           <div className="rounded-lg bg-muted p-2.5">
             <p className="text-xs text-muted-foreground">End Balance</p>
             <p className="text-sm font-mono font-bold">
-              {formatCurrency(endOfMonthBalance, "MAD")}
+              {money(endOfMonthBalance)}
             </p>
           </div>
         </div>
@@ -352,7 +358,7 @@ export function CashFlowCalendar({
         </div>
 
         <p className="text-xs text-muted-foreground mt-3 text-center">
-          All amounts converted to MAD for projection
+          All amounts converted to {base} for projection
         </p>
       </CardContent>
     </Card>

@@ -3,6 +3,7 @@
 import { useState } from "react";
 import {
   AccountsScreen,
+  BrowserFrame,
   CashFlowScreen,
   DashboardScreen,
   GoalsScreen,
@@ -51,26 +52,12 @@ export function ScreensTabs() {
         ))}
       </div>
 
-      <div
-        id="lp-screen-panel"
-        role="tabpanel"
-        aria-labelledby={`lp-tab-${screen.key}`}
-        className="lp-browser"
-      >
-        <div className="lp-browser__bar" aria-hidden>
-          <span className="flex gap-1.5">
-            {[0, 1, 2].map((i) => (
-              <span key={i} className="size-2.5 rounded-full bg-[#0000001a]" />
-            ))}
-          </span>
-          <span className="min-w-0 truncate rounded-full bg-[#f7f7f9] px-3 py-1 text-center text-[11px] text-[#0000004d] sm:min-w-56">
-            {screen.url}
-          </span>
-          <span />
-        </div>
-        <div key={screen.key} className="lp-screen-in">
-          <screen.Screen />
-        </div>
+      <div id="lp-screen-panel" role="tabpanel" aria-labelledby={`lp-tab-${screen.key}`}>
+        <BrowserFrame url={screen.url}>
+          <div key={screen.key} className="lp-screen-in">
+            <screen.Screen />
+          </div>
+        </BrowserFrame>
       </div>
     </>
   );

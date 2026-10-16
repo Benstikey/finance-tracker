@@ -5,7 +5,7 @@ export default function robots(): MetadataRoute.Robots {
   return {
     rules: {
       userAgent: "*",
-      allow: ["/", "/login"],
+      allow: ["/", "/features", "/privacy", "/login"],
       // Everything else is the signed-in app.
       disallow: [
         "/dashboard",

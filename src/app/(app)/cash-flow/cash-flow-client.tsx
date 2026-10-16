@@ -12,12 +12,12 @@ import type { CashFlowWithCurrency, Currency } from "@/lib/types/database";
 import type { ExchangeRates } from "@/lib/exchange-rates";
 import { convertCurrency, formatCurrency } from "@/lib/exchange-rates";
 import {
-  formatMAD,
   MetricTabs,
   PageHeader,
   Panel,
   PanelHeader,
 } from "@/components/metrics";
+import { useMoney } from "@/components/display-currency";
 import {
   Plus,
   Pencil,
@@ -383,12 +383,12 @@ const FILTER_TITLES: Record<FlowFilter, string> = {
 export function CashFlowClient({
   cashFlows,
   currencies,
-  currentBalanceMAD,
+  currentBalance,
   rates,
 }: {
   cashFlows: CashFlowWithCurrency[];
   currencies: Currency[];
-  currentBalanceMAD: number;
+  currentBalance: number;
   rates: ExchangeRates;
 }) {
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -403,16 +403,17 @@ export function CashFlowClient({
   const incomeFlows = active.filter((cf) => cf.type === "income");
   const expenseFlows = active.filter((cf) => cf.type === "expense");
 
-  const monthlyMAD = (flows: CashFlowWithCurrency[]) =>
+  const money = useMoney();
+  const monthly = (flows: CashFlowWithCurrency[]) =>
     flows.reduce(
       (s, cf) =>
         s +
-        convertCurrency(cf.amount, cf.currencies.code, "MAD", rates) *
+        convertCurrency(cf.amount, cf.currencies.code, money.code, rates) *
           PER_MONTH[cf.frequency],
       0
     );
-  const monthlyIncome = monthlyMAD(incomeFlows);
-  const monthlyExpense = monthlyMAD(expenseFlows);
+  const monthlyIncome = monthly(incomeFlows);
+  const monthlyExpense = monthly(expenseFlows);
   const monthlyNet = monthlyIncome - monthlyExpense;
   const entries = (n: number) => `${n} entr${n !== 1 ? "ies" : "y"}`;
 
@@ -440,7 +441,7 @@ export function CashFlowClient({
     <div className="@container flex flex-col gap-5">
       <PageHeader
         title="Cash Flow"
-        subtitle="Income, expenses and your balance forecast · MAD"
+        subtitle={`Income, expenses and your balance forecast · ${money.code}`}
         actions={
           <Dialog
             open={dialogOpen}
@@ -483,19 +484,19 @@ export function CashFlowClient({
             {
               key: "income",
               label: "Income / month",
-              value: formatMAD(monthlyIncome),
+              value: money.format(monthlyIncome),
               footer: entries(incomeFlows.length),
             },
             {
               key: "expense",
               label: "Expenses / month",
-              value: formatMAD(monthlyExpense),
+              value: money.format(monthlyExpense),
               footer: entries(expenseFlows.length),
             },
             {
               key: "all",
               label: "Net / month",
-              value: `${monthlyNet < 0 ? "−" : monthlyNet > 0 ? "+" : ""}${formatMAD(Math.abs(monthlyNet))}`,
+              value: money.formatSigned(monthlyNet),
               footer: "recurring entries only",
             },
             {
@@ -534,7 +535,7 @@ export function CashFlowClient({
 
       <CashFlowCalendar
         cashFlows={active}
-        currentBalanceMAD={currentBalanceMAD}
+        currentBalance={currentBalance}
         rates={rates}
       />
     </div>

@@ -16,12 +16,12 @@ import {
   type ExchangeRates,
 } from "@/lib/exchange-rates";
 import {
-  formatMAD,
   MetricTabs,
   PageHeader,
   Panel,
   SegmentedControl,
 } from "@/components/metrics";
+import { useMoney } from "@/components/display-currency";
 import {
   Target,
   CircleCheck,
@@ -358,17 +358,18 @@ export function ObjectivesClient({
   const activeObjectives = objectives.filter((o) => !o.completed);
   const completedObjectives = objectives.filter((o) => o.completed);
 
-  const toMAD = (amount: number, o: ObjectiveWithCurrency) =>
-    convertCurrency(amount, o.currencies.code, "MAD", rates);
-  const savedMAD = activeObjectives.reduce((s, o) => s + toMAD(o.current_saved, o), 0);
-  const targetMAD = activeObjectives.reduce((s, o) => s + toMAD(o.target_amount, o), 0);
-  const progress = targetMAD > 0 ? (savedMAD / targetMAD) * 100 : 0;
+  const money = useMoney();
+  const toBase = (amount: number, o: ObjectiveWithCurrency) =>
+    convertCurrency(amount, o.currencies.code, money.code, rates);
+  const saved = activeObjectives.reduce((s, o) => s + toBase(o.current_saved, o), 0);
+  const target = activeObjectives.reduce((s, o) => s + toBase(o.target_amount, o), 0);
+  const progress = target > 0 ? (saved / target) * 100 : 0;
 
   return (
     <div className="@container flex flex-col gap-5">
       <PageHeader
         title="Objectives"
-        subtitle="Savings goals · totals in MAD"
+        subtitle={`Savings goals · totals in ${money.code}`}
         actions={
           <Dialog
             open={dialogOpen}
@@ -408,19 +409,19 @@ export function ObjectivesClient({
             {
               key: "saved",
               label: "Saved",
-              value: formatMAD(savedMAD),
+              value: money.format(saved),
               footer: `across ${activeObjectives.length} active goal${activeObjectives.length !== 1 ? "s" : ""}`,
             },
             {
               key: "target",
               label: "Target",
-              value: formatMAD(targetMAD),
+              value: money.format(target),
               footer: "active goals combined",
             },
             {
               key: "remaining",
               label: "Remaining",
-              value: formatMAD(Math.max(targetMAD - savedMAD, 0)),
+              value: money.format(Math.max(target - saved, 0)),
               footer: "left to save",
             },
             {

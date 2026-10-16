@@ -24,14 +24,15 @@ export function historyDays(): string[] {
 }
 
 /**
- * Daily balance per account in MAD, at today's exchange rates.
+ * Daily balance per account in the `base` currency, at today's exchange rates.
  * Balance at day D = current balance - sum(transactions dated after D).
  */
 export function accountBalanceHistory(
   days: string[],
   accounts: AccountWithCurrency[],
   transactions: Transaction[],
-  rates: ExchangeRates
+  rates: ExchangeRates,
+  base: string
 ): Record<string, number>[] {
   const first = days[0];
   const running: Record<string, number> = {};
@@ -51,7 +52,7 @@ export function accountBalanceHistory(
     const row: Record<string, number> = {};
     for (const a of accounts) {
       row[a.id] = Math.round(
-        convertCurrency(running[a.id], a.currencies.code, "MAD", rates)
+        convertCurrency(running[a.id], a.currencies.code, base, rates)
       );
     }
     return row;
@@ -73,29 +74,31 @@ function outstandingOn(loan: LoanWithCurrency, day: string): number {
   return Math.max(loan.amount - repaid, 0);
 }
 
-/** Daily outstanding loan totals in MAD. */
+/** Daily outstanding loan totals in the `base` currency. */
 export function loanHistory(
   days: string[],
   loans: LoanWithCurrency[],
-  rates: ExchangeRates
+  rates: ExchangeRates,
+  base: string
 ): { lent: number; borrowed: number }[] {
   return days.map((day) => {
     let lent = 0;
     let borrowed = 0;
     for (const l of loans) {
-      const mad = convertCurrency(outstandingOn(l, day), l.currencies.code, "MAD", rates);
-      if (l.direction === "lent") lent += mad;
-      else borrowed += mad;
+      const value = convertCurrency(outstandingOn(l, day), l.currencies.code, base, rates);
+      if (l.direction === "lent") lent += value;
+      else borrowed += value;
     }
     return { lent: Math.round(lent), borrowed: Math.round(borrowed) };
   });
 }
 
-/** Daily outstanding loans in MAD per person, split by direction. */
+/** Daily outstanding loans in the `base` currency per person, split by direction. */
 export function loanHistoryByPerson(
   days: string[],
   loans: LoanWithCurrency[],
-  rates: ExchangeRates
+  rates: ExchangeRates,
+  base: string
 ): Record<"lent" | "borrowed", Record<string, number[]>> {
   const out: Record<"lent" | "borrowed", Record<string, number[]>> = {
     lent: {},
@@ -104,7 +107,7 @@ export function loanHistoryByPerson(
   for (const l of loans) {
     const series = (out[l.direction][l.person] ??= days.map(() => 0));
     days.forEach((day, i) => {
-      series[i] += convertCurrency(outstandingOn(l, day), l.currencies.code, "MAD", rates);
+      series[i] += convertCurrency(outstandingOn(l, day), l.currencies.code, base, rates);
     });
   }
   for (const byPerson of Object.values(out)) {
@@ -116,14 +119,15 @@ export function loanHistoryByPerson(
 }
 
 /**
- * Net money moved per account per day (deposits minus withdrawals), in MAD.
+ * Net money moved per account per day (deposits minus withdrawals), in `base`.
  * Transfers between accounts are left out: they aren't income or spending.
  */
 export function transactionFlowHistory(
   days: string[],
   accounts: AccountWithCurrency[],
   transactions: Transaction[],
-  rates: ExchangeRates
+  rates: ExchangeRates,
+  base: string
 ): Record<string, number[]> {
   const index = new Map(days.map((d, i) => [d, i]));
   const out: Record<string, number[]> = {};
@@ -133,7 +137,7 @@ export function transactionFlowHistory(
     const i = index.get(tx.date);
     const code = codes.get(tx.account_id);
     if (i === undefined || !code || tx.transfer_id) continue;
-    out[tx.account_id][i] += convertCurrency(tx.amount, code, "MAD", rates);
+    out[tx.account_id][i] += convertCurrency(tx.amount, code, base, rates);
   }
   for (const series of Object.values(out)) {
     series.forEach((v, i) => (series[i] = Math.round(v)));

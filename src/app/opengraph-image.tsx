@@ -68,7 +68,7 @@ export default function Image() {
         >
           <div style={{ fontSize: 20, color: "#737373" }}>Net worth</div>
           <div style={{ fontSize: 44, fontWeight: 600, letterSpacing: -1, marginTop: 4 }}>
-            142,800 MAD
+            $142,800
           </div>
           <div style={{ display: "flex", alignItems: "center", gap: 10, marginTop: 8 }}>
             <div

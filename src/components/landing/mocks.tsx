@@ -49,13 +49,45 @@ function Kpi({ label, value, change, down }: { label: string; value: string; cha
   );
 }
 
+/* ── Browser frame ──────────────────────────────────────────────────── */
+
+export function BrowserFrame({
+  url,
+  children,
+  className,
+}: {
+  url: string;
+  children: React.ReactNode;
+  className?: string;
+}) {
+  return (
+    <div className={cn("lp-browser", className)}>
+      <div className="lp-browser__bar" aria-hidden>
+        <span className="flex gap-1.5">
+          {[0, 1, 2].map((i) => (
+            <span key={i} className="size-2.5 rounded-full bg-[#0000001a]" />
+          ))}
+        </span>
+        <span className="min-w-0 truncate rounded-full bg-[#f7f7f9] px-3 py-1 text-center text-[11px] text-[#0000004d] sm:min-w-56">
+          {url}
+        </span>
+        <span />
+      </div>
+      {children}
+    </div>
+  );
+}
+
 /* ── Full screens for the tabbed section ────────────────────────────── */
 
 function Shell({ title, children }: { title: string; children: React.ReactNode }) {
   const nav = ["Dashboard", "Accounts", "Net Worth", "Cash Flow", "Objectives", "Loans"];
   return (
-    <div className="flex h-[440px] bg-[#fafafa] text-left sm:h-[480px]">
-      <aside className="hidden w-40 shrink-0 flex-col gap-0.5 border-r border-[#0a0a0a0e] bg-[#fcfcfc] p-3 sm:flex">
+    // Layout follows the frame's width, not the page's, so the same screen
+    // works full-width in the tabs and in a half-width feature row.
+    <div className="@container">
+    <div className="flex h-[440px] bg-[#fafafa] text-left @[640px]:h-[480px]">
+      <aside className="hidden w-40 shrink-0 flex-col gap-0.5 border-r border-[#0a0a0a0e] bg-[#fcfcfc] p-3 @[560px]:flex">
         <div className="mb-3 flex items-center gap-2 px-1.5">
           <span className="size-4 rounded-[5px] bg-[#0a0a0a]" />
           <span className={cn("text-[12px] font-semibold", ink)}>Finance</span>
@@ -86,16 +118,17 @@ function Shell({ title, children }: { title: string; children: React.ReactNode }
         {children}
       </div>
     </div>
+    </div>
   );
 }
 
 export function DashboardScreen() {
   return (
     <Shell title="Dashboard">
-      <div className="grid grid-cols-2 gap-2 lg:grid-cols-3">
-        <Kpi label="Net worth" value="142,800 MAD" change="+8.4%" />
-        <Kpi label="Owed to me" value="2,500 MAD" change="−20.0%" down />
-        <Kpi label="Net transactions" value="+6,240 MAD" change="+12.1%" />
+      <div className="grid grid-cols-2 gap-2 @[620px]:grid-cols-3">
+        <Kpi label="Net worth" value="$142,800" change="+8.4%" />
+        <Kpi label="Owed to me" value="$2,500" change="−20.0%" down />
+        <Kpi label="Net transactions" value="+$6,240" change="+12.1%" />
       </div>
       <div className={cn(card, "flex flex-1 flex-col gap-2 p-3")}>
         <span className={cn("text-[11px] font-medium", ink)}>Net worth</span>
@@ -113,25 +146,25 @@ export function DashboardScreen() {
 }
 
 const ACCOUNTS = [
-  { name: "CIH Bank", type: "Bank", cur: "MAD", bal: "84,200.00", share: 59 },
-  { name: "Wise", type: "Wallet", cur: "EUR", bal: "3,120.00", share: 24 },
-  { name: "Revolut", type: "Wallet", cur: "USD", bal: "1,480.00", share: 10 },
-  { name: "Cash", type: "Cash", cur: "MAD", bal: "9,600.00", share: 7 },
+  { name: "Main checking", type: "Bank", cur: "USD", bal: "84,200.00", share: 59 },
+  { name: "Wise", type: "Wallet", cur: "EUR", bal: "31,800.00", share: 24 },
+  { name: "Revolut", type: "Wallet", cur: "GBP", bal: "11,200.00", share: 10 },
+  { name: "Cash", type: "Cash", cur: "USD", bal: "9,600.00", share: 7 },
 ];
 
 export function AccountsScreen() {
   return (
     <Shell title="Accounts">
-      <div className="grid grid-cols-2 gap-2 lg:grid-cols-4">
+      <div className="grid grid-cols-2 gap-2 @[760px]:grid-cols-4">
         {[
-          ["All accounts", "142,800"],
-          ["Bank", "84,200"],
-          ["Digital Wallet", "49,000"],
-          ["Cash", "9,600"],
+          ["All accounts", "$142,800"],
+          ["Bank", "$84,200"],
+          ["Digital Wallet", "$48,900"],
+          ["Cash", "$9,600"],
         ].map(([l, v]) => (
           <div key={l} className={cn(card, "p-3")}>
             <p className={cn("text-[10px] font-medium", muted)}>{l}</p>
-            <p className={cn("text-[14px] font-semibold tabular-nums", ink)}>{v} MAD</p>
+            <p className={cn("text-[14px] font-semibold tabular-nums", ink)}>{v}</p>
           </div>
         ))}
       </div>
@@ -160,21 +193,21 @@ export function AccountsScreen() {
 }
 
 const LOANS = [
-  { who: "Yassine", what: "Laptop", amt: "+4,500 MAD" },
-  { who: "Sara", what: "Trip deposit", amt: "+1,200 MAD" },
-  { who: "Omar", what: "Dinner", amt: "−350 MAD" },
-  { who: "Lina", what: "Concert tickets", amt: "−800 MAD" },
+  { who: "Alex", what: "Laptop · $1,500 of $6,000 repaid", amt: "+$4,500", repaid: 25 },
+  { who: "Sara", what: "Trip deposit", amt: "+$1,200" },
+  { who: "Omar", what: "Dinner", amt: "−$350" },
+  { who: "Lina", what: "Concert tickets", amt: "−$800" },
 ];
 
 export function LoansScreen() {
   return (
     <Shell title="Loans">
-      <div className="grid grid-cols-2 gap-2 lg:grid-cols-4">
-        <Kpi label="Owed to me" value="5,700 MAD" change="+3 loans" />
-        <Kpi label="I owe" value="1,150 MAD" change="2 loans" down />
-        <div className="hidden lg:contents">
-          <Kpi label="Net position" value="+4,550 MAD" change="in favour" />
-          <Kpi label="Settled" value="12,300 MAD" change="9 loans" down />
+      <div className="grid grid-cols-2 gap-2 @[760px]:grid-cols-4">
+        <Kpi label="Owed to me" value="$5,700" change="+3 loans" />
+        <Kpi label="I owe" value="$1,150" change="2 loans" down />
+        <div className="hidden @[760px]:contents">
+          <Kpi label="Net position" value="+$4,550" change="in your favor" />
+          <Kpi label="Settled" value="$12,300" change="9 loans" down />
         </div>
       </div>
       <div className={cn(card, "flex-1 divide-y divide-[#f0f0f0] overflow-hidden")}>
@@ -187,6 +220,11 @@ export function LoansScreen() {
               <span>
                 <span className={cn("block font-medium", ink)}>{l.who}</span>
                 <span className={muted}>{l.what}</span>
+                {"repaid" in l && (
+                  <span className="mt-1 block h-1 w-24 rounded-full bg-[#0000000a]">
+                    <span className="block h-1 rounded-full bg-[#0a0a0a]" style={{ width: `${l.repaid}%` }} />
+                  </span>
+                )}
               </span>
             </span>
             <span className={cn("font-mono tabular-nums", ink)}>{l.amt}</span>
@@ -201,16 +239,16 @@ export function CashFlowScreen() {
   const events: Record<number, string> = { 1: "Salary", 5: "Rent", 12: "Gym", 15: "Freelance", 22: "Internet", 28: "Savings" };
   return (
     <Shell title="Cash Flow">
-      <div className="grid grid-cols-2 gap-2 lg:grid-cols-4">
+      <div className="grid grid-cols-2 gap-2 @[760px]:grid-cols-4">
         {[
-          ["Income / month", "+18,500"],
-          ["Expenses / month", "−9,240"],
-          ["Net / month", "+9,260"],
-          ["End balance", "152,060"],
+          ["Income / month", "+$6,800"],
+          ["Expenses / month", "−$4,240"],
+          ["Net / month", "+$2,560"],
+          ["End balance", "$145,360"],
         ].map(([l, v]) => (
           <div key={l} className={cn(card, "p-3")}>
             <p className={cn("text-[10px] font-medium", muted)}>{l}</p>
-            <p className={cn("text-[14px] font-semibold tabular-nums", ink)}>{v} MAD</p>
+            <p className={cn("text-[14px] font-semibold tabular-nums", ink)}>{v}</p>
           </div>
         ))}
       </div>
@@ -250,15 +288,15 @@ function Ring({ value, size = 64 }: { value: number; size?: number }) {
 }
 
 const GOALS = [
-  { name: "Yamaha Tracer 9", saved: "92,480", target: "136,000", pct: 68 },
-  { name: "Emergency fund", saved: "41,000", target: "50,000", pct: 82 },
-  { name: "Lisbon trip", saved: "6,300", target: "18,000", pct: 35 },
+  { name: "Yamaha Tracer 9", saved: "$9,248", target: "$13,600", pct: 68, note: "On track · Jun 2027" },
+  { name: "Emergency fund", saved: "$12,300", target: "$15,000", pct: 82, note: "Reached in Feb 2027" },
+  { name: "Lisbon trip", saved: "$1,050", target: "$3,000", pct: 35, note: "2 months behind" },
 ];
 
 export function GoalsScreen() {
   return (
     <Shell title="Objectives">
-      <div className="grid flex-1 grid-cols-1 gap-2 sm:grid-cols-3">
+      <div className="grid flex-1 grid-cols-1 gap-2 @[480px]:grid-cols-3">
         {GOALS.map((g) => (
           <div key={g.name} className={cn(card, "flex flex-col items-center justify-center gap-3 p-4")}>
             <div className="relative grid place-items-center">
@@ -268,7 +306,10 @@ export function GoalsScreen() {
             <div className="text-center">
               <p className={cn("text-[12px] font-medium", ink)}>{g.name}</p>
               <p className={cn("text-[10px] tabular-nums", muted)}>
-                {g.saved} / {g.target} MAD
+                {g.saved} / {g.target}
+              </p>
+              <p className={cn("mt-1.5 rounded-full bg-[#0000000a] px-2 py-0.5 text-[10px] font-medium", ink)}>
+                {g.note}
               </p>
             </div>
           </div>
@@ -287,7 +328,7 @@ export function WallTile({ variant }: { variant: number }) {
       return (
         <div className={base}>
           <span className={cn("text-[12px] font-medium", muted)}>Net worth</span>
-          <span className={cn("text-[24px] font-semibold tracking-tight", ink)}>142,800 MAD</span>
+          <span className={cn("text-[24px] font-semibold tracking-tight", ink)}>$142,800</span>
           <Sparkline className="mt-auto h-20" />
         </div>
       );
@@ -313,7 +354,7 @@ export function WallTile({ variant }: { variant: number }) {
           </div>
           <div>
             <p className={cn("text-[15px] font-medium", ink)}>Yamaha Tracer 9</p>
-            <p className={cn("text-[12px]", muted)}>92,480 / 136,000 MAD</p>
+            <p className={cn("text-[12px]", muted)}>$9,248 / $13,600</p>
           </div>
         </div>
       );
@@ -348,7 +389,7 @@ export function WallTile({ variant }: { variant: number }) {
           <span className={cn("text-[12px] font-medium", muted)}>Held in foreign currency</span>
           <span className={cn("text-[24px] font-semibold tracking-tight", ink)}>34.2%</span>
           <div className="mt-auto flex gap-1.5">
-            {["MAD", "EUR", "USD"].map((c, i) => (
+            {["USD", "EUR", "GBP"].map((c, i) => (
               <span
                 key={c}
                 className={cn(

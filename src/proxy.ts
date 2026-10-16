@@ -6,6 +6,8 @@ import { decrypt, SESSION_COOKIE } from "@/lib/session";
  * and never touches the database, because this runs on every request including
  * prefetches. The real authorization happens per-query via src/lib/dal.ts.
  */
+const MARKETING_PAGES = ["/features", "/privacy"];
+
 const PUBLIC_FILES = [
   "/robots.txt",
   "/sitemap.xml",
@@ -20,6 +22,7 @@ export async function proxy(request: NextRequest) {
 
   const isPublic =
     pathname === "/" ||
+    MARKETING_PAGES.includes(pathname) ||
     pathname.startsWith("/login") ||
     pathname.startsWith("/api") ||
     // Crawler and share-card files must never bounce to the login page.

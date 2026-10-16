@@ -8,6 +8,7 @@ import { ChartContainer, ChartTooltip, type ChartConfig } from "@/components/ui/
 import { Button } from "@/components/ui/button";
 import { IconSwap } from "@/components/ui/icon-swap";
 import { cn } from "@/lib/utils";
+import { useMoney } from "@/components/display-currency";
 
 /* ── Formatting ─────────────────────────────────────────────────────── */
 
@@ -18,10 +19,6 @@ export const compactFormat = new Intl.NumberFormat("en-US", {
   notation: "compact",
   maximumFractionDigits: 1,
 });
-
-export function formatMAD(value: number) {
-  return `${madFormat.format(value)} MAD`;
-}
 
 export function formatDay(day: string, withYear = false) {
   return new Date(day + "T00:00:00Z").toLocaleDateString("en-US", {
@@ -426,6 +423,7 @@ export function TrendChart({
   compare: boolean;
 }) {
   const id = React.useId().replaceAll(":", "");
+  const { format: formatMoney } = useMoney();
   const chartConfig: ChartConfig = {
     value: { label, color: "var(--primary)" },
     previous: { label: "Previous period", color: "var(--muted-foreground)" },
@@ -472,7 +470,7 @@ export function TrendChart({
                     {formatDay(row.date, true)}
                   </span>
                   <span className="font-mono font-medium tabular-nums">
-                    {formatMAD(row.value)}
+                    {formatMoney(row.value)}
                   </span>
                 </div>
                 {compare && row.previousDate && row.previous != null && (
@@ -481,7 +479,7 @@ export function TrendChart({
                       {formatDay(row.previousDate, true)}
                     </span>
                     <span className="font-mono text-muted-foreground tabular-nums">
-                      {formatMAD(row.previous)}
+                      {formatMoney(row.previous)}
                     </span>
                   </div>
                 )}

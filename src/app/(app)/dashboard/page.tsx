@@ -1,5 +1,5 @@
 import { requireUserId } from "@/lib/dal";
-import { getAccounts, getLoans, getTransactions } from "@/lib/queries";
+import { getAccounts, getDisplayCurrency, getLoans, getTransactions } from "@/lib/queries";
 import { getExchangeRates, convertCurrency } from "@/lib/exchange-rates";
 import {
   accountBalanceHistory,
@@ -14,21 +14,22 @@ import { DashboardClient, type DashboardSeries } from "./dashboard-client";
 export default async function DashboardPage() {
   const userId = await requireUserId();
 
-  const [accounts, transactions, loans, rates] = await Promise.all([
+  const [accounts, transactions, loans, rates, base] = await Promise.all([
     getAccounts(userId, "name"),
     getTransactions(userId, "asc"),
     getLoans(userId),
     getExchangeRates("USD"),
+    getDisplayCurrency(userId),
   ]);
 
-  const toMAD = (amount: number, code: string) =>
-    convertCurrency(amount, code, "MAD", rates);
+  const toBase = (amount: number, code: string) =>
+    convertCurrency(amount, code, base, rates);
 
   const days = historyDays();
-  const balances = accountBalanceHistory(days, accounts, transactions, rates);
-  const loanTotals = loanHistory(days, loans, rates);
-  const byPerson = loanHistoryByPerson(days, loans, rates);
-  const flows = transactionFlowHistory(days, accounts, transactions, rates);
+  const balances = accountBalanceHistory(days, accounts, transactions, rates, base);
+  const loanTotals = loanHistory(days, loans, rates, base);
+  const byPerson = loanHistoryByPerson(days, loans, rates, base);
+  const flows = transactionFlowHistory(days, accounts, transactions, rates, base);
 
   const netWorth = balances.map((row) =>
     Object.values(row).reduce((s, v) => s + v, 0)
@@ -80,7 +81,7 @@ export default async function DashboardPage() {
     .map((a) => ({
       label: a.name,
       hint: a.currencies.code,
-      value: Math.round(toMAD(a.balance, a.currencies.code)),
+      value: Math.round(toBase(a.balance, a.currencies.code)),
     }))
     .sort((a, b) => b.value - a.value);
 
@@ -90,7 +91,7 @@ export default async function DashboardPage() {
       value: Math.round(
         accounts
           .filter((a) => a.currencies.code === code)
-          .reduce((s, a) => s + toMAD(a.balance, code), 0)
+          .reduce((s, a) => s + toBase(a.balance, code), 0)
       ),
     }))
     .sort((a, b) => b.value - a.value);

@@ -1,4 +1,5 @@
 import "server-only";
+import { cache } from "react";
 import { sql } from "@/lib/db";
 import type {
   AccountWithCurrency,
@@ -158,3 +159,9 @@ export async function getCashFlows(
     order by f.type asc, f.created_at desc
   `) as CashFlowWithCurrency[];
 }
+
+/** The currency this user's totals are converted to and shown in. */
+export const getDisplayCurrency = cache(async (userId: string): Promise<string> => {
+  const rows = await sql`select display_currency from users where id = ${userId}`;
+  return (rows[0]?.display_currency as string | undefined) ?? "USD";
+});

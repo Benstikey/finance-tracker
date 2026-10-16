@@ -24,12 +24,12 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { convertCurrency, type ExchangeRates } from "@/lib/exchange-rates";
 import {
-  formatMAD,
   MetricTabs,
   PageHeader,
   Panel,
   PanelHeader,
 } from "@/components/metrics";
+import { useMoney } from "@/components/display-currency";
 import {
   Dialog,
   DialogContent,
@@ -706,8 +706,9 @@ export function AccountsClient({
     router.refresh();
   }
 
-  const toMAD = (a: AccountWithCurrency) =>
-    convertCurrency(a.balance, a.currencies.code, "MAD", rates);
+  const money = useMoney();
+  const toBase = (a: AccountWithCurrency) =>
+    convertCurrency(a.balance, a.currencies.code, money.code, rates);
   const tabs = [{ value: "all", label: "All accounts" }, ...accountTypes].map(
     (t) => {
       const matching = accounts.filter(
@@ -716,7 +717,7 @@ export function AccountsClient({
       return {
         key: t.value,
         label: t.label,
-        value: formatMAD(matching.reduce((s, a) => s + toMAD(a), 0)),
+        value: money.format(matching.reduce((s, a) => s + toBase(a), 0)),
         footer: `${matching.length} account${matching.length !== 1 ? "s" : ""}`,
       };
     }
