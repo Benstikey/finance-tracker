@@ -5,6 +5,7 @@ import { Lock } from "lucide-react";
 import { Sparkline, WallTile } from "@/components/landing/mocks";
 import { ScreensTabs } from "@/components/landing/screens-tabs";
 import { Faq } from "@/components/landing/faq";
+import { ARTICLES, readingMinutes } from "@/content/articles";
 import type { Metadata } from "next";
 import { SITE_DESCRIPTION, SITE_NAME, SITE_URL } from "@/lib/site";
 
@@ -243,6 +244,36 @@ export default async function LandingPage() {
         <div className="flex justify-center pt-8">
           <Link href="/privacy" className="lp-btn lp-btn--secondary">
             How your data is handled
+          </Link>
+        </div>
+      </section>
+
+      {/* ── From the blog ─────────────────────────────────────────────── */}
+      <section aria-labelledby="lp-blog-title" className="mx-auto max-w-[1008px] pb-20 min-[761px]:pb-[112px]">
+        <h2 id="lp-blog-title" className="lp-lead">
+          Guides for seeing
+          <br />
+          your money clearly
+        </h2>
+        <div className="grid grid-cols-1 gap-3.5 pt-8 md:grid-cols-3">
+          {ARTICLES.slice(0, 3).map((a) => (
+            <Link
+              key={a.slug}
+              href={`/blog/${a.slug}`}
+              className="group flex flex-col rounded-[14px] border border-[#0a0a0a0e] bg-white p-6 transition-[box-shadow] duration-150 ease-out hover:shadow-[0_4px_42px_#0000000f]"
+            >
+              <p className="text-[12px] font-medium text-[#737373]">
+                {a.category} · {readingMinutes(a)} min read
+              </p>
+              <h3 className="pt-2 text-[16px] leading-[23px] font-medium tracking-[-0.3px] text-balance">
+                {a.title}
+              </h3>
+            </Link>
+          ))}
+        </div>
+        <div className="flex justify-center pt-8">
+          <Link href="/blog" className="lp-btn lp-btn--secondary">
+            Read the blog
           </Link>
         </div>
       </section>

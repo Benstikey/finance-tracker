@@ -377,6 +377,64 @@
   transition-delay: 60ms;
 }
 
+/* ── Articles ────────────────────────────────────────────────────────── */
+
+.lp-prose {
+  color: #3f3f3f;
+  font-size: 16px;
+  line-height: 28px;
+}
+.lp-prose > * + * {
+  margin-top: 18px;
+}
+.lp-prose h2 {
+  margin-top: 40px;
+  color: var(--lp-text);
+  font-size: 21px;
+  font-weight: 500;
+  line-height: 28px;
+  letter-spacing: -0.4px;
+}
+.lp-prose strong {
+  color: var(--lp-text);
+  font-weight: 500;
+}
+.lp-prose a {
+  color: var(--lp-text);
+  text-decoration: underline;
+  text-decoration-color: #0a0a0a40;
+  text-underline-offset: 3px;
+  transition: text-decoration-color var(--lp-duration) ease;
+}
+.lp-prose a:hover {
+  text-decoration-color: var(--lp-text);
+}
+.lp-prose ul,
+.lp-prose ol {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding-left: 22px;
+}
+.lp-prose ul {
+  list-style: disc;
+}
+.lp-prose ol {
+  list-style: decimal;
+}
+.lp-prose li::marker {
+  color: #a3a3a3;
+}
+.lp-prose__callout {
+  padding: 14px 18px;
+  border-radius: 12px;
+  background: var(--lp-preview);
+  box-shadow: inset 0 0 0 1px var(--lp-stroke);
+  color: var(--lp-text);
+  font-size: 15px;
+  font-weight: 500;
+}
+
 /* ── Small screens ───────────────────────────────────────────────────── */
 
 @media (max-width: 760px) {

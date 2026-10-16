@@ -19,9 +19,17 @@ export function LogoMark({ size = 20 }: { size?: number }) {
 
 const LINKS = [
   { href: "/features", label: "Features" },
-  { href: "/privacy", label: "Privacy" },
-  { href: "/#faq", label: "FAQ" },
+  { href: "/how-it-works", label: "How it works" },
+  { href: "/use-cases", label: "Use cases" },
+  { href: "/blog", label: "Blog" },
 ];
+
+// Mobile menu: the main links plus the ones only the footer shows on desktop.
+const MOBILE_LINKS = [...LINKS, { href: "/privacy", label: "Privacy" }, { href: "/login", label: "Log in" }];
+
+function isCurrent(pathname: string, href: string) {
+  return pathname === href || (href !== "/" && pathname.startsWith(`${href}/`));
+}
 
 function MobileMenu() {
   const [open, setOpen] = useState(false);
@@ -35,7 +43,7 @@ function MobileMenu() {
   }, [open]);
 
   return (
-    <div className="relative sm:hidden">
+    <div className="relative md:hidden">
       <button
         type="button"
         className="lp-btn lp-btn--sm lp-btn--secondary !px-2"
@@ -52,12 +60,12 @@ function MobileMenu() {
           aria-label="Mobile"
           className="lp-pop absolute top-10 right-0 flex w-52 flex-col rounded-[14px] bg-white p-1.5 shadow-[0_4px_42px_#0000000f,0_2px_6px_#0000000d,0_0_0_1px_#0000000f]"
         >
-          {[...LINKS, { href: "/login", label: "Log in" }].map((l) => (
+          {MOBILE_LINKS.map((l) => (
             <Link
               key={l.href}
               href={l.href}
               onClick={() => setOpen(false)}
-              aria-current={pathname === l.href ? "page" : undefined}
+              aria-current={isCurrent(pathname, l.href) ? "page" : undefined}
               className="rounded-[8px] px-3 py-2 text-[14px] text-[#0a0a0a] hover:bg-[#0000000a] aria-[current=page]:font-medium"
             >
               {l.label}
@@ -78,13 +86,13 @@ export function SiteNav() {
           <LogoMark />
           <span className="text-[15px] font-medium tracking-[-0.15px]">Finance</span>
         </Link>
-        <nav aria-label="Primary" className="hidden gap-0.5 sm:flex">
+        <nav aria-label="Primary" className="hidden gap-0.5 md:flex">
           {LINKS.map((l) => (
             <Link
               key={l.href}
               href={l.href}
               className="lp-nav__link"
-              aria-current={pathname === l.href ? "page" : undefined}
+              aria-current={isCurrent(pathname, l.href) ? "page" : undefined}
             >
               {l.label}
             </Link>
@@ -115,12 +123,18 @@ export function SiteFooter() {
           </span>
           <span>A private, multi-currency net worth tracker.</span>
         </div>
-        <nav aria-label="Footer" className="flex gap-12">
+        <nav aria-label="Footer" className="flex flex-wrap gap-x-12 gap-y-6">
           <div className="flex flex-col gap-2">
             <span className="font-medium text-[#0a0a0a]">Product</span>
             <Link href="/features" className="hover:text-[#0a0a0a]">Features</Link>
-            <Link href="/#faq" className="hover:text-[#0a0a0a]">FAQ</Link>
+            <Link href="/how-it-works" className="hover:text-[#0a0a0a]">How it works</Link>
+            <Link href="/use-cases" className="hover:text-[#0a0a0a]">Use cases</Link>
             <Link href="/login" className="hover:text-[#0a0a0a]">Log in</Link>
+          </div>
+          <div className="flex flex-col gap-2">
+            <span className="font-medium text-[#0a0a0a]">Learn</span>
+            <Link href="/blog" className="hover:text-[#0a0a0a]">Blog</Link>
+            <Link href="/#faq" className="hover:text-[#0a0a0a]">FAQ</Link>
           </div>
           <div className="flex flex-col gap-2">
             <span className="font-medium text-[#0a0a0a]">Trust</span>
