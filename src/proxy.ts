@@ -6,6 +6,14 @@ import { decrypt, SESSION_COOKIE } from "@/lib/session";
  * and never touches the database, because this runs on every request including
  * prefetches. The real authorization happens per-query via src/lib/dal.ts.
  */
+const PUBLIC_FILES = [
+  "/robots.txt",
+  "/sitemap.xml",
+  "/manifest.webmanifest",
+  "/opengraph-image",
+  "/twitter-image",
+];
+
 export async function proxy(request: NextRequest) {
   const session = await decrypt(request.cookies.get(SESSION_COOKIE)?.value);
   const { pathname } = request.nextUrl;
@@ -13,7 +21,9 @@ export async function proxy(request: NextRequest) {
   const isPublic =
     pathname === "/" ||
     pathname.startsWith("/login") ||
-    pathname.startsWith("/api");
+    pathname.startsWith("/api") ||
+    // Crawler and share-card files must never bounce to the login page.
+    PUBLIC_FILES.some((f) => pathname.startsWith(f));
 
   if (!session && !isPublic) {
     const url = request.nextUrl.clone();

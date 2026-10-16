@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { createAccount, updateAccount, deleteAccount } from "./actions";
-import { addTransaction, deleteTransaction } from "./transaction-actions";
+import { addTransaction, addTransfer, deleteTransaction } from "./transaction-actions";
 import type { AccountWithCurrency, Currency, Transaction } from "@/lib/types/database";
 import {
   Landmark,
@@ -16,6 +16,8 @@ import {
   ArrowDownCircle,
   ChevronDown,
   X,
+  ArrowLeftRight,
+  ArrowRight,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -325,14 +327,180 @@ function TransactionDialog({
   );
 }
 
+const selectClass =
+  "h-8 w-full min-w-0 rounded-lg border border-input bg-transparent px-2 text-sm outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50";
+
+function TransferForm({
+  accounts,
+  rates,
+  onDone,
+}: {
+  accounts: AccountWithCurrency[];
+  rates: ExchangeRates;
+  onDone: () => void;
+}) {
+  const [loading, setLoading] = useState(false);
+  const [fromId, setFromId] = useState(accounts[0]?.id ?? "");
+  const [toId, setToId] = useState(accounts[1]?.id ?? "");
+  const [amount, setAmount] = useState("");
+  // null = follow the live rate; a string once the user edits it (fees, own rate).
+  const [receivedOverride, setReceivedOverride] = useState<string | null>(null);
+  const router = useRouter();
+  const today = new Date().toISOString().split("T")[0];
+
+  const from = accounts.find((a) => a.id === fromId);
+  const to = accounts.find((a) => a.id === toId);
+  const crossCurrency = !!from && !!to && from.currencies.code !== to.currencies.code;
+  const sent = parseFloat(amount) || 0;
+  const converted =
+    from && to ? convertCurrency(sent, from.currencies.code, to.currencies.code, rates) : sent;
+  const received = receivedOverride ?? (sent ? converted.toFixed(2) : "");
+  const rate =
+    from && to ? convertCurrency(1, from.currencies.code, to.currencies.code, rates) : 1;
+
+  async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
+    e.preventDefault();
+    setLoading(true);
+    const formData = new FormData(e.currentTarget);
+    if (!crossCurrency) formData.set("received", amount);
+    try {
+      await addTransfer(formData);
+      router.refresh();
+      onDone();
+    } catch (err) {
+      alert(err instanceof Error ? err.message : "Error");
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  if (accounts.length < 2) {
+    return (
+      <p className="py-4 text-sm text-muted-foreground">
+        Add a second account to move money between them.
+      </p>
+    );
+  }
+
+  return (
+    <form onSubmit={handleSubmit} className="space-y-4">
+      <div className="grid grid-cols-[1fr_auto_1fr] items-end gap-2">
+        <div className="space-y-2">
+          <Label htmlFor="from_account_id">From</Label>
+          <select
+            id="from_account_id"
+            name="from_account_id"
+            className={selectClass}
+            value={fromId}
+            onChange={(e) => {
+              setFromId(e.target.value);
+              setReceivedOverride(null);
+            }}
+          >
+            {accounts.map((a) => (
+              <option key={a.id} value={a.id}>
+                {a.name} ({a.currencies.code})
+              </option>
+            ))}
+          </select>
+        </div>
+        <ArrowRight className="mb-2 size-4 text-muted-foreground" aria-hidden />
+        <div className="space-y-2">
+          <Label htmlFor="to_account_id">To</Label>
+          <select
+            id="to_account_id"
+            name="to_account_id"
+            className={selectClass}
+            value={toId}
+            onChange={(e) => {
+              setToId(e.target.value);
+              setReceivedOverride(null);
+            }}
+          >
+            {accounts.map((a) => (
+              <option key={a.id} value={a.id} disabled={a.id === fromId}>
+                {a.name} ({a.currencies.code})
+              </option>
+            ))}
+          </select>
+        </div>
+      </div>
+      {fromId === toId && (
+        <p className="text-xs text-destructive">Pick two different accounts.</p>
+      )}
+
+      <div className={crossCurrency ? "grid grid-cols-2 gap-3" : ""}>
+        <div className="space-y-2">
+          <Label htmlFor="transfer-amount">
+            {crossCurrency ? "Sent" : "Amount"} ({from?.currencies.code})
+          </Label>
+          <Input
+            id="transfer-amount"
+            name="amount"
+            type="number"
+            step="0.01"
+            min="0.01"
+            placeholder="0.00"
+            value={amount}
+            onChange={(e) => {
+              setAmount(e.target.value);
+              setReceivedOverride(null);
+            }}
+            required
+          />
+        </div>
+        {crossCurrency && (
+          <div className="space-y-2">
+            <Label htmlFor="transfer-received">Received ({to?.currencies.code})</Label>
+            <Input
+              id="transfer-received"
+              name="received"
+              type="number"
+              step="0.01"
+              min="0.01"
+              placeholder="0.00"
+              value={received}
+              onChange={(e) => setReceivedOverride(e.target.value)}
+              required
+            />
+          </div>
+        )}
+      </div>
+      {crossCurrency && (
+        <p className="-mt-2 text-xs text-muted-foreground">
+          Live rate: 1 {from?.currencies.code} = {rate.toFixed(4)} {to?.currencies.code}. Change
+          the received amount if fees applied.
+        </p>
+      )}
+
+      <div className="grid grid-cols-2 gap-3">
+        <div className="space-y-2">
+          <Label htmlFor="transfer-date">Date</Label>
+          <Input id="transfer-date" name="date" type="date" defaultValue={today} max={today} required />
+        </div>
+        <div className="space-y-2">
+          <Label htmlFor="transfer-description">Note (optional)</Label>
+          <Input id="transfer-description" name="description" placeholder="e.g. Savings" />
+        </div>
+      </div>
+
+      <Button type="submit" className="w-full h-11" disabled={loading || fromId === toId}>
+        {loading ? "Moving..." : "Transfer"}
+      </Button>
+    </form>
+  );
+}
+
 function AccountRow({
   account,
   transactions,
+  accountNames,
   onEdit,
   onDelete,
 }: {
   account: AccountWithCurrency;
   transactions: Transaction[];
+  accountNames: Map<string, string>;
   onEdit: (account: AccountWithCurrency) => void;
   onDelete: (id: string) => void;
 }) {
@@ -343,8 +511,20 @@ function AccountRow({
   const Icon = accountTypeIconMap[account.type] || Wallet;
   const accountTxs = transactions.filter((t) => t.account_id === account.id);
 
+  // The other leg of a transfer, for "Transfer to X" / "Transfer from X".
+  function counterpart(tx: Transaction) {
+    if (!tx.transfer_id) return null;
+    const other = transactions.find(
+      (t) => t.transfer_id === tx.transfer_id && t.id !== tx.id
+    );
+    return other ? (accountNames.get(other.account_id) ?? "another account") : null;
+  }
+
   async function handleDeleteTx(tx: Transaction) {
-    if (!confirm("Remove this transaction? The account balance will be adjusted.")) return;
+    const message = tx.transfer_id
+      ? "Remove this transfer? Both accounts will be adjusted."
+      : "Remove this transaction? The account balance will be adjusted.";
+    if (!confirm(message)) return;
     setDeletingTx(tx.id);
     try {
       await deleteTransaction(tx.id, account.id, tx.amount);
@@ -447,15 +627,22 @@ function AccountRow({
                       className="flex items-center justify-between rounded-md bg-background border px-3 py-2 text-sm"
                     >
                       <div className="flex items-center gap-3">
-                        {tx.amount >= 0 ? (
+                        {tx.transfer_id ? (
+                          <ArrowLeftRight className="h-4 w-4 text-muted-foreground shrink-0" />
+                        ) : tx.amount >= 0 ? (
                           <ArrowUpCircle className="h-4 w-4 text-foreground shrink-0" />
                         ) : (
                           <ArrowDownCircle className="h-4 w-4 text-muted-foreground shrink-0" />
                         )}
                         <div>
                           <p className="font-medium">
-                            {tx.description || (tx.amount >= 0 ? "Deposit" : "Withdrawal")}
+                            {tx.transfer_id
+                              ? `Transfer ${tx.amount < 0 ? "to" : "from"} ${counterpart(tx) ?? "another account"}`
+                              : tx.description || (tx.amount >= 0 ? "Deposit" : "Withdrawal")}
                           </p>
+                          {tx.transfer_id && tx.description && (
+                            <p className="text-xs text-muted-foreground">{tx.description}</p>
+                          )}
                           <p className="text-xs text-muted-foreground">{tx.date}</p>
                         </div>
                       </div>
@@ -509,6 +696,8 @@ export function AccountsClient({
     AccountWithCurrency | undefined
   >();
   const [typeFilter, setTypeFilter] = useState("all");
+  const [transferOpen, setTransferOpen] = useState(false);
+  const accountNames = new Map(accounts.map((a) => [a.id, a.name]));
   const router = useRouter();
 
   async function handleDelete(id: string) {
@@ -542,6 +731,25 @@ export function AccountsClient({
         title="Accounts"
         subtitle="Manage your money across banks and wallets"
         actions={
+          <>
+          <Dialog open={transferOpen} onOpenChange={setTransferOpen}>
+            <DialogTrigger render={<Button variant="outline" />}>
+              <ArrowLeftRight /> Transfer
+            </DialogTrigger>
+            <DialogContent>
+              <DialogHeader>
+                <DialogTitle>Transfer between accounts</DialogTitle>
+                <DialogDescription>
+                  Moves money in one step. Net worth only changes by any conversion difference.
+                </DialogDescription>
+              </DialogHeader>
+              <TransferForm
+                accounts={accounts}
+                rates={rates}
+                onDone={() => setTransferOpen(false)}
+              />
+            </DialogContent>
+          </Dialog>
           <Dialog
             open={dialogOpen}
             onOpenChange={(open) => {
@@ -570,6 +778,7 @@ export function AccountsClient({
               />
             </DialogContent>
           </Dialog>
+          </>
         }
       />
 
@@ -611,6 +820,7 @@ export function AccountsClient({
                     key={account.id}
                     account={account}
                     transactions={transactions}
+                    accountNames={accountNames}
                     onEdit={(a) => {
                       setEditAccount(a);
                       setDialogOpen(true);

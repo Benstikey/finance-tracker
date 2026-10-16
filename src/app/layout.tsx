@@ -1,4 +1,5 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
+import { SITE_DESCRIPTION, SITE_NAME, SITE_URL } from "@/lib/site";
 import { Analytics } from "@vercel/analytics/next";
 import { Inter, JetBrains_Mono } from "next/font/google";
 import "./globals.css";
@@ -14,9 +15,35 @@ const jetbrainsMono = JetBrains_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Finance — Track your wealth",
-  description:
-    "A private, multi-currency finance tracker. No bank sync. No noise. Just clarity.",
+  metadataBase: new URL(SITE_URL),
+  title: {
+    default: "Finance: private multi-currency net worth tracker",
+    template: `%s · ${SITE_NAME}`,
+  },
+  description: SITE_DESCRIPTION,
+  applicationName: SITE_NAME,
+  keywords: [
+    "net worth tracker",
+    "multi-currency finance tracker",
+    "personal finance app",
+    "loan tracker",
+    "savings goals",
+    "cash flow forecast",
+    "MAD EUR USD",
+    "no bank sync",
+  ],
+  openGraph: {
+    type: "website",
+    siteName: SITE_NAME,
+    locale: "en_US",
+    url: "/",
+  },
+  twitter: { card: "summary_large_image" },
+  formatDetection: { telephone: false },
+};
+
+export const viewport: Viewport = {
+  themeColor: "#ffffff",
 };
 
 export default function RootLayout({

@@ -5,7 +5,25 @@ import { Lock, Wallet } from "lucide-react";
 import { Sparkline, WallTile } from "@/components/landing/mocks";
 import { ScreensTabs } from "@/components/landing/screens-tabs";
 import { Faq } from "@/components/landing/faq";
+import type { Metadata } from "next";
+import { SITE_DESCRIPTION, SITE_NAME, SITE_URL } from "@/lib/site";
 import "./landing.css";
+
+export const metadata: Metadata = {
+  title: { absolute: "Finance: private multi-currency net worth tracker" },
+  description: SITE_DESCRIPTION,
+  alternates: { canonical: "/" },
+  openGraph: {
+    title: "Finance: your money, in plain sight",
+    description: SITE_DESCRIPTION,
+    url: "/",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "Finance: your money, in plain sight",
+    description: SITE_DESCRIPTION,
+  },
+};
 
 const FAQS = [
   {
@@ -25,10 +43,55 @@ const FAQS = [
     a: "Yes. The net worth view exports your history as a CSV file for any range, ready for a spreadsheet.",
   },
   {
+    q: "Can it track money I lent or borrowed?",
+    a: "Yes. Record loans in either direction, log part-payments as they come in, and see what's still outstanding per person.",
+  },
+  {
     q: "Is it really free?",
     a: "Yes. There is no trial, no card and no paid tier.",
   },
 ];
+
+// Structured data: the app itself, and the FAQ (eligible for FAQ results).
+const JSON_LD = {
+  "@context": "https://schema.org",
+  "@graph": [
+    {
+      "@type": "WebSite",
+      "@id": `${SITE_URL}/#website`,
+      url: `${SITE_URL}/`,
+      name: SITE_NAME,
+      description: SITE_DESCRIPTION,
+      inLanguage: "en",
+    },
+    {
+      "@type": "WebApplication",
+      name: SITE_NAME,
+      url: `${SITE_URL}/`,
+      description: SITE_DESCRIPTION,
+      applicationCategory: "FinanceApplication",
+      operatingSystem: "Web",
+      offers: { "@type": "Offer", price: "0", priceCurrency: "USD" },
+      featureList: [
+        "Multi-currency net worth with live exchange rates",
+        "Bank, wallet and cash accounts",
+        "Transfers between accounts",
+        "Loan tracking with partial repayments",
+        "Savings goals with completion projections",
+        "Cash flow calendar forecast",
+        "CSV export",
+      ],
+    },
+    {
+      "@type": "FAQPage",
+      mainEntity: FAQS.map((f) => ({
+        "@type": "Question",
+        name: f.q,
+        acceptedAnswer: { "@type": "Answer", text: f.a },
+      })),
+    },
+  ],
+};
 
 function LogoMark({ size = 20 }: { size?: number }) {
   return (
@@ -74,6 +137,13 @@ export default async function LandingPage() {
 
   return (
     <div className="lp">
+      <script
+        type="application/ld+json"
+        // Escape "<" so the JSON can't close the script tag early.
+        dangerouslySetInnerHTML={{
+          __html: JSON.stringify(JSON_LD).replace(/</g, "\\u003c"),
+        }}
+      />
       <header className="relative z-30 mx-auto flex h-[68px] max-w-[1056px] items-center justify-between gap-4 px-6">
         <div className="flex min-w-0 items-center gap-[30px]">
           <Link href="/" className="flex items-center gap-[7px]" aria-label="Finance home">
@@ -113,7 +183,7 @@ export default async function LandingPage() {
               in plain sight
             </h1>
             <p className="max-w-[560px] pt-3.5 text-[15px] leading-[22px] text-pretty text-[#737373] min-[761px]:text-base min-[761px]:leading-6">
-              Every account, currency, loan and goal in one calm place.
+              A private net worth tracker for every account, currency, loan and goal.
               <br className="hidden sm:block" /> No bank sync. Just the numbers you choose to enter.
             </p>
             <div className="flex gap-2 pt-7">

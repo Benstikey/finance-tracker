@@ -9,6 +9,7 @@ import {
   toggleObjectiveComplete,
 } from "./actions";
 import type { ObjectiveWithCurrency, Currency } from "@/lib/types/database";
+import { formatMonth, projectObjective } from "@/lib/projection";
 import {
   convertCurrency,
   formatCurrency,
@@ -29,6 +30,8 @@ import {
   Plus,
   Check,
   Undo2,
+  CalendarClock,
+  CircleAlert,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -221,6 +224,32 @@ function ObjectiveForm({
           min={1}
         />
       </div>
+      <div className="grid grid-cols-2 gap-3">
+        <div className="space-y-2">
+          <Label htmlFor="monthly_contribution">Saving per month</Label>
+          <Input
+            id="monthly_contribution"
+            name="monthly_contribution"
+            type="number"
+            step="0.01"
+            min="0"
+            defaultValue={objective?.monthly_contribution ?? ""}
+            placeholder="Optional"
+          />
+        </div>
+        <div className="space-y-2">
+          <Label htmlFor="target_date">Reach it by</Label>
+          <Input
+            id="target_date"
+            name="target_date"
+            type="date"
+            defaultValue={objective?.target_date ?? ""}
+          />
+        </div>
+      </div>
+      <p className="-mt-1 text-xs text-muted-foreground">
+        Both optional. With either one, the goal shows when you&apos;ll reach it.
+      </p>
       <Button type="submit" className="w-full h-11" disabled={loading}>
         {loading
           ? "Saving..."
@@ -229,6 +258,73 @@ function ObjectiveForm({
             : "Add Objective"}
       </Button>
     </form>
+  );
+}
+
+function ProjectionLine({ objective }: { objective: ObjectiveWithCurrency }) {
+  const p = projectObjective(objective);
+  const money = (v: number) => formatCurrency(Math.ceil(v), objective.currencies.code);
+  const perMonth = objective.monthly_contribution
+    ? `${money(objective.monthly_contribution)}/month`
+    : null;
+
+  let icon = <CalendarClock className="size-3.5 shrink-0" />;
+  let text: React.ReactNode;
+  let tone = "text-muted-foreground";
+
+  switch (p.status) {
+    case "done":
+      return null;
+    case "no-plan":
+      text = "Add a monthly amount or a date to see when you'll get there.";
+      break;
+    case "projected":
+      text = (
+        <>
+          At {perMonth}, reached in <strong className="font-medium text-foreground">{formatMonth(p.eta)}</strong>
+        </>
+      );
+      break;
+    case "on-track":
+      icon = <CircleCheck className="size-3.5 shrink-0" />;
+      tone = "text-foreground";
+      text = (
+        <>
+          On track · reached in {formatMonth(p.eta)}, before{" "}
+          {formatMonth(objective.target_date!)}
+        </>
+      );
+      break;
+    case "behind":
+      icon = <CircleAlert className="size-3.5 shrink-0" />;
+      tone = "text-foreground";
+      text = (
+        <>
+          {p.monthsLate} month{p.monthsLate === 1 ? "" : "s"} behind · needs{" "}
+          {money(p.neededPerMonth!)}/month to hit {formatMonth(objective.target_date!)}
+        </>
+      );
+      break;
+    case "needs-plan":
+      text = (
+        <>
+          Needs {money(p.neededPerMonth)}/month to reach it by{" "}
+          {formatMonth(objective.target_date!)}
+        </>
+      );
+      break;
+    case "overdue":
+      icon = <CircleAlert className="size-3.5 shrink-0" />;
+      tone = "text-foreground";
+      text = <>Target date passed with {money(p.remaining)} to go</>;
+      break;
+  }
+
+  return (
+    <p className={`mt-3 flex items-start gap-1.5 text-xs leading-snug ${tone}`}>
+      <span className="mt-px">{icon}</span>
+      <span>{text}</span>
+    </p>
   );
 }
 
@@ -462,6 +558,7 @@ export function ObjectivesClient({
                         )}
                       </span>
                     </div>
+                    <ProjectionLine objective={obj} />
                   </CardContent>
                 </Card>
               );

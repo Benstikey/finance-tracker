@@ -66,14 +66,14 @@ export async function getTransactions(
     order === "asc"
       ? await sql`
           select id, user_id, account_id, amount::float8 as amount, description,
-                 date::text as date, created_at::text as created_at
+                 date::text as date, transfer_id, created_at::text as created_at
           from transactions
           where user_id = ${userId}
           order by date asc
         `
       : await sql`
           select id, user_id, account_id, amount::float8 as amount, description,
-                 date::text as date, created_at::text as created_at
+                 date::text as date, transfer_id, created_at::text as created_at
           from transactions
           where user_id = ${userId}
           order by date desc
@@ -88,6 +88,8 @@ export async function getObjectives(
     select o.id, o.user_id, o.name,
            o.target_amount::float8 as target_amount, o.currency_id,
            o.current_saved::float8 as current_saved, o.priority, o.completed,
+           o.monthly_contribution::float8 as monthly_contribution,
+           o.target_date::text as target_date,
            o.created_at::text as created_at,
            json_build_object('id', c.id, 'code', c.code, 'name', c.name,
              'symbol', c.symbol, 'created_at', c.created_at::text) as currencies
@@ -96,6 +98,20 @@ export async function getObjectives(
     order by o.priority asc
   `) as ObjectiveWithCurrency[];
 }
+
+// Repayments for loan `l`, plus their sum. Shared by both getLoans branches.
+const REPAYMENTS_SQL = sql.unsafe(`
+  coalesce((
+    select json_agg(json_build_object(
+             'id', r.id, 'loan_id', r.loan_id, 'amount', r.amount::float8,
+             'date', r.date::text, 'note', r.note
+           ) order by r.date, r.created_at)
+    from loan_repayments r where r.loan_id = l.id
+  ), '[]'::json) as repayments,
+  coalesce((
+    select sum(r.amount)::float8 from loan_repayments r where r.loan_id = l.id
+  ), 0) as repaid
+`);
 
 export async function getLoans(
   userId: string,
@@ -107,7 +123,8 @@ export async function getLoans(
                l.amount::float8 as amount, l.currency_id, l.direction, l.settled,
                l.created_at::text as created_at, l.updated_at::text as updated_at,
                json_build_object('id', c.id, 'code', c.code, 'name', c.name,
-                 'symbol', c.symbol, 'created_at', c.created_at::text) as currencies
+                 'symbol', c.symbol, 'created_at', c.created_at::text) as currencies,
+               ${REPAYMENTS_SQL}
         from loans l join currencies c on c.id = l.currency_id
         where l.user_id = ${userId} and l.settled = false
         order by l.created_at desc
@@ -117,7 +134,8 @@ export async function getLoans(
                l.amount::float8 as amount, l.currency_id, l.direction, l.settled,
                l.created_at::text as created_at, l.updated_at::text as updated_at,
                json_build_object('id', c.id, 'code', c.code, 'name', c.name,
-                 'symbol', c.symbol, 'created_at', c.created_at::text) as currencies
+                 'symbol', c.symbol, 'created_at', c.created_at::text) as currencies,
+               ${REPAYMENTS_SQL}
         from loans l join currencies c on c.id = l.currency_id
         where l.user_id = ${userId}
         order by l.settled asc, l.created_at desc

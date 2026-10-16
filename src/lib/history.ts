@@ -59,28 +59,33 @@ export function accountBalanceHistory(
 }
 
 /**
- * Daily outstanding loan totals in MAD. A loan counts from its creation until
- * it was settled; there is no settled_at column, so updated_at stands in.
+ * Outstanding amount of a loan at the end of `day`, in its own currency.
+ * A loan counts from its creation; repayments reduce it on their dates; once
+ * settled it drops to zero. There is no settled_at column, so updated_at
+ * stands in for the settlement date.
  */
+function outstandingOn(loan: LoanWithCurrency, day: string): number {
+  if (loan.created_at.slice(0, 10) > day) return 0;
+  if (loan.settled && loan.updated_at.slice(0, 10) <= day) return 0;
+  const repaid = loan.repayments
+    .filter((r) => r.date <= day)
+    .reduce((s, r) => s + r.amount, 0);
+  return Math.max(loan.amount - repaid, 0);
+}
+
+/** Daily outstanding loan totals in MAD. */
 export function loanHistory(
   days: string[],
   loans: LoanWithCurrency[],
   rates: ExchangeRates
 ): { lent: number; borrowed: number }[] {
-  const spans = loans.map((l) => ({
-    direction: l.direction,
-    mad: convertCurrency(l.amount, l.currencies.code, "MAD", rates),
-    from: l.created_at.slice(0, 10),
-    until: l.settled ? l.updated_at.slice(0, 10) : null,
-  }));
-
   return days.map((day) => {
     let lent = 0;
     let borrowed = 0;
-    for (const s of spans) {
-      if (s.from > day || (s.until && s.until <= day)) continue;
-      if (s.direction === "lent") lent += s.mad;
-      else borrowed += s.mad;
+    for (const l of loans) {
+      const mad = convertCurrency(outstandingOn(l, day), l.currencies.code, "MAD", rates);
+      if (l.direction === "lent") lent += mad;
+      else borrowed += mad;
     }
     return { lent: Math.round(lent), borrowed: Math.round(borrowed) };
   });
@@ -97,12 +102,9 @@ export function loanHistoryByPerson(
     borrowed: {},
   };
   for (const l of loans) {
-    const mad = convertCurrency(l.amount, l.currencies.code, "MAD", rates);
-    const from = l.created_at.slice(0, 10);
-    const until = l.settled ? l.updated_at.slice(0, 10) : null;
     const series = (out[l.direction][l.person] ??= days.map(() => 0));
     days.forEach((day, i) => {
-      if (from <= day && !(until && until <= day)) series[i] += mad;
+      series[i] += convertCurrency(outstandingOn(l, day), l.currencies.code, "MAD", rates);
     });
   }
   for (const byPerson of Object.values(out)) {
@@ -113,7 +115,10 @@ export function loanHistoryByPerson(
   return out;
 }
 
-/** Net money moved per account per day (deposits minus withdrawals), in MAD. */
+/**
+ * Net money moved per account per day (deposits minus withdrawals), in MAD.
+ * Transfers between accounts are left out: they aren't income or spending.
+ */
 export function transactionFlowHistory(
   days: string[],
   accounts: AccountWithCurrency[],
@@ -127,7 +132,7 @@ export function transactionFlowHistory(
   for (const tx of transactions) {
     const i = index.get(tx.date);
     const code = codes.get(tx.account_id);
-    if (i === undefined || !code) continue;
+    if (i === undefined || !code || tx.transfer_id) continue;
     out[tx.account_id][i] += convertCurrency(tx.amount, code, "MAD", rates);
   }
   for (const series of Object.values(out)) {

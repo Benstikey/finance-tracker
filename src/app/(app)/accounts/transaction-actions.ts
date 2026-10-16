@@ -47,9 +47,59 @@ export async function addTransaction(formData: FormData) {
 }
 
 /**
+ * Moves money between two of the user's accounts. `amount` leaves the source
+ * account in its currency; `received` arrives in the destination's currency
+ * (they differ when the currencies do, or when there's a fee). Both legs share
+ * a transfer_id and are written with both balance updates in one statement.
+ */
+export async function addTransfer(formData: FormData) {
+  const userId = await requireUserId();
+
+  const fromId = formData.get("from_account_id") as string;
+  const toId = formData.get("to_account_id") as string;
+  const amount = Math.abs(parseFloat(formData.get("amount") as string) || 0);
+  const received = Math.abs(
+    parseFloat(formData.get("received") as string) || amount
+  );
+  const description = (formData.get("description") as string) || null;
+  const date =
+    (formData.get("date") as string) ||
+    new Date().toISOString().split("T")[0];
+
+  if (!fromId || !toId || fromId === toId) {
+    throw new Error("Pick two different accounts.");
+  }
+  if (amount <= 0) throw new Error("Enter an amount greater than zero.");
+
+  const transferId = crypto.randomUUID();
+
+  // Inserts nothing unless both accounts belong to this user.
+  await sql`
+    with legs as (
+      insert into transactions (user_id, account_id, amount, description, date, transfer_id)
+      select ${userId}, v.account_id, v.amount, ${description}, ${date}::date, ${transferId}
+      from (values (${fromId}::uuid, ${-amount}::numeric),
+                   (${toId}::uuid, ${received}::numeric)) as v(account_id, amount)
+      where (
+        select count(*) from accounts
+        where user_id = ${userId} and id in (${fromId}::uuid, ${toId}::uuid)
+      ) = 2
+      returning account_id, amount
+    )
+    update accounts a
+    set balance = a.balance + l.amount
+    from legs l
+    where a.id = l.account_id and a.user_id = ${userId}
+  `;
+
+  revalidate();
+}
+
+/**
  * `accountId` and `amount` are accepted for call-site compatibility but are
  * deliberately not trusted — the reversal uses the amount stored on the row,
  * so a tampered client can't shift a balance by an arbitrary figure.
+ * Deleting either leg of a transfer deletes both and reverses both balances.
  */
 export async function deleteTransaction(
   id: string,
@@ -59,9 +109,18 @@ export async function deleteTransaction(
   const userId = await requireUserId();
 
   await sql`
-    with deleted as (
-      delete from transactions
+    with target as (
+      select transfer_id from transactions
       where id = ${id} and user_id = ${userId}
+    ),
+    deleted as (
+      delete from transactions t
+      where t.user_id = ${userId}
+        and (
+          t.id = ${id}
+          or (t.transfer_id is not null
+              and t.transfer_id = (select transfer_id from target))
+        )
       returning account_id, amount
     )
     update accounts a

@@ -43,6 +43,10 @@ export type Objective = {
   current_saved: number;
   priority: number;
   completed: boolean;
+  /** Planned saving per month, in the objective's currency. */
+  monthly_contribution: number | null;
+  /** Optional date the objective should be reached by (YYYY-MM-DD). */
+  target_date: string | null;
   created_at: string;
 };
 
@@ -53,7 +57,17 @@ export type Transaction = {
   amount: number;
   description: string | null;
   date: string;
+  /** Shared by the two legs of a transfer between accounts. */
+  transfer_id: string | null;
   created_at: string;
+};
+
+export type LoanRepayment = {
+  id: string;
+  loan_id: string;
+  amount: number;
+  date: string;
+  note: string | null;
 };
 
 export type Loan = {
@@ -87,7 +101,13 @@ export type CashFlow = {
 
 export type AccountWithCurrency = Account & { currencies: Currency };
 export type ObjectiveWithCurrency = Objective & { currencies: Currency };
-export type LoanWithCurrency = Loan & { currencies: Currency };
+export type LoanWithCurrency = Loan & {
+  currencies: Currency;
+  /** Part-payments, oldest first, in the loan's currency. */
+  repayments: LoanRepayment[];
+  /** Sum of repayments. Outstanding = amount - repaid. */
+  repaid: number;
+};
 export type CashFlowWithCurrency = CashFlow & { currencies: Currency };
 export type TransactionWithAccount = Transaction & {
   accounts: AccountWithCurrency;

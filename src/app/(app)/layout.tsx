@@ -2,6 +2,13 @@ import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/app-sidebar";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { AppHeader } from "@/components/app-header";
+import type { Metadata } from "next";
+
+// Private pages behind the login: keep them out of search results.
+export const metadata: Metadata = {
+  title: "App",
+  robots: { index: false, follow: false },
+};
 
 export default function AppLayout({ children }: { children: React.ReactNode }) {
   return (
