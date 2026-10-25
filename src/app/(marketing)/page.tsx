@@ -1,5 +1,3 @@
-import { optionalUserId } from "@/lib/dal";
-import { redirect } from "next/navigation";
 import Link from "next/link";
 import { Lock } from "lucide-react";
 import { Sparkline, WallTile } from "@/components/landing/mocks";
@@ -63,6 +61,15 @@ const JSON_LD = {
       name: SITE_NAME,
       description: SITE_DESCRIPTION,
       inLanguage: "en",
+      publisher: { "@id": `${SITE_URL}/#organization` },
+    },
+    {
+      "@type": "Organization",
+      "@id": `${SITE_URL}/#organization`,
+      name: SITE_NAME,
+      url: `${SITE_URL}/`,
+      logo: `${SITE_URL}/icon.svg`,
+      description: SITE_DESCRIPTION,
     },
     {
       "@type": "WebApplication",
@@ -72,6 +79,7 @@ const JSON_LD = {
       applicationCategory: "FinanceApplication",
       operatingSystem: "Web",
       offers: { "@type": "Offer", price: "0", priceCurrency: "USD" },
+      publisher: { "@id": `${SITE_URL}/#organization` },
       featureList: [
         "Multi-currency net worth with live exchange rates",
         "Bank, wallet and cash accounts",
@@ -95,7 +103,7 @@ const JSON_LD = {
 
 function IsoWall() {
   // The grid is rendered twice so the slow upward drift loops seamlessly.
-  const tiles = Array.from({ length: 36 }, (_, i) => i);
+  const tiles = Array.from({ length: 24 }, (_, i) => i);
   return (
     <div className="lp-iso" aria-hidden>
       <div className="lp-iso__plane">
@@ -118,11 +126,9 @@ function IsoWall() {
   );
 }
 
-export default async function LandingPage() {
-  // Redirect authenticated users straight to the app
-  const userId = await optionalUserId();
-  if (userId) redirect("/dashboard");
-
+export default function LandingPage() {
+  // Signed-in visitors never reach this page: src/proxy.ts redirects them to
+  // /dashboard. Keeping it free of cookies lets it be served statically.
   return (
     <>
       <script
@@ -276,6 +282,14 @@ export default async function LandingPage() {
             Read the blog
           </Link>
         </div>
+        <p className="pt-6 text-center text-[13px] text-[#737373]">
+          Or try a free calculator:{" "}
+          <Link href="/tools/net-worth-calculator" className="text-[#0a0a0a] underline decoration-[#0a0a0a40] underline-offset-4 hover:decoration-[#0a0a0a]">net worth</Link>
+          {" · "}
+          <Link href="/tools/savings-goal-calculator" className="text-[#0a0a0a] underline decoration-[#0a0a0a40] underline-offset-4 hover:decoration-[#0a0a0a]">savings goal</Link>
+          {" · "}
+          <Link href="/tools/emergency-fund-calculator" className="text-[#0a0a0a] underline decoration-[#0a0a0a40] underline-offset-4 hover:decoration-[#0a0a0a]">emergency fund</Link>
+        </p>
       </section>
 
       {/* ── FAQ ────────────────────────────────────────────────────── */}

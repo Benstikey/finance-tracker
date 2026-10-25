@@ -1,6 +1,7 @@
 import type { MetadataRoute } from "next";
 import { SITE_URL } from "@/lib/site";
 import { ARTICLES } from "@/content/articles";
+import { TOOLS } from "@/content/tools";
 
 export default function sitemap(): MetadataRoute.Sitemap {
   return [
@@ -8,6 +9,12 @@ export default function sitemap(): MetadataRoute.Sitemap {
     { url: `${SITE_URL}/features`, changeFrequency: "monthly", priority: 0.8 },
     { url: `${SITE_URL}/how-it-works`, changeFrequency: "monthly", priority: 0.7 },
     { url: `${SITE_URL}/use-cases`, changeFrequency: "monthly", priority: 0.7 },
+    { url: `${SITE_URL}/tools`, changeFrequency: "monthly", priority: 0.8 },
+    ...TOOLS.map((t) => ({
+      url: `${SITE_URL}/tools/${t.slug}`,
+      changeFrequency: "monthly" as const,
+      priority: 0.9,
+    })),
     { url: `${SITE_URL}/blog`, changeFrequency: "weekly", priority: 0.7 },
     ...ARTICLES.map((a) => ({
       url: `${SITE_URL}/blog/${a.slug}`,

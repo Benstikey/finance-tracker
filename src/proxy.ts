@@ -6,7 +6,7 @@ import { decrypt, SESSION_COOKIE } from "@/lib/session";
  * and never touches the database, because this runs on every request including
  * prefetches. The real authorization happens per-query via src/lib/dal.ts.
  */
-const MARKETING_PAGES = ["/features", "/privacy", "/how-it-works", "/use-cases", "/blog"];
+const MARKETING_PAGES = ["/features", "/privacy", "/how-it-works", "/use-cases", "/blog", "/tools"];
 
 const PUBLIC_FILES = [
   "/robots.txt",
@@ -14,6 +14,7 @@ const PUBLIC_FILES = [
   "/manifest.webmanifest",
   "/opengraph-image",
   "/twitter-image",
+  "/llms.txt",
 ];
 
 export async function proxy(request: NextRequest) {
@@ -26,7 +27,9 @@ export async function proxy(request: NextRequest) {
     pathname.startsWith("/login") ||
     pathname.startsWith("/api") ||
     // Crawler and share-card files must never bounce to the login page.
-    PUBLIC_FILES.some((f) => pathname.startsWith(f));
+    PUBLIC_FILES.some((f) => pathname.startsWith(f)) ||
+    // Root-level .txt files: robots, llms and the IndexNow key.
+    /^\/[\w-]+\.txt$/.test(pathname);
 
   if (!session && !isPublic) {
     const url = request.nextUrl.clone();

@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { BreadcrumbLd } from "@/components/landing/breadcrumb-ld";
 import Link from "next/link";
 import { ARTICLES, formatArticleDate, readingMinutes } from "@/content/articles";
 
@@ -14,9 +15,12 @@ export const metadata: Metadata = {
 };
 
 export default function BlogIndex() {
-  const [featured, ...rest] = ARTICLES;
+  // The featured card's illustration is the net worth formula, so pin that guide.
+  const featured = ARTICLES.find((a) => a.slug === "how-to-calculate-your-net-worth") ?? ARTICLES[0];
+  const rest = ARTICLES.filter((a) => a !== featured);
   return (
     <>
+      <BreadcrumbLd name="Blog" path="/blog" />
       <section className="mx-auto flex max-w-[1008px] flex-col items-center pt-16 pb-14 text-center min-[761px]:pt-24 min-[761px]:pb-16">
         <div className="lp-hero__copy flex max-w-[600px] flex-col items-center">
           <h1 className="text-[34px] leading-[40px] font-medium tracking-[-1px] text-balance min-[761px]:text-[46px] min-[761px]:leading-[52px] min-[761px]:tracking-[-1.4px]">

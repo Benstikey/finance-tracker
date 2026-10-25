@@ -24,6 +24,216 @@ export type Article = {
 
 export const ARTICLES: Article[] = [
   {
+    slug: "how-much-should-be-in-an-emergency-fund",
+    title: "How much should be in an emergency fund?",
+    description:
+      "Three to six months of essential expenses is the usual answer, but the right number depends on your income, your job and who relies on you. Here's how to work out yours.",
+    date: "2026-10-25",
+    category: "Guide",
+    blocks: [
+      {
+        type: "p",
+        text: "An emergency fund is money set aside for the things you can't plan: losing your income, an urgent repair, a medical bill. It's what stops a bad month from turning into debt. The question is always how much.",
+      },
+      { type: "h2", text: "The short answer" },
+      { type: "callout", text: "Emergency fund = essential monthly expenses × months of cover" },
+      {
+        type: "p",
+        text: "Most guidance lands on **three to six months** of essential expenses. If your essentials cost $2,800 a month, that's $8,400 to $16,800. You can work out your own number with the [emergency fund calculator](/tools/emergency-fund-calculator).",
+      },
+      { type: "h2", text: "Work out your essential expenses" },
+      {
+        type: "p",
+        text: "Essentials are what you'd still have to pay if your income stopped tomorrow. Not your usual spending, only the floor.",
+      },
+      {
+        type: "ul",
+        items: [
+          "Rent or mortgage, and utilities",
+          "Insurance and minimum debt payments",
+          "Groceries and transport",
+          "Childcare or support for anyone who depends on you",
+        ],
+      },
+      { type: "h2", text: "When three months is enough" },
+      {
+        type: "p",
+        text: "A stable salary, skills that are in demand, no dependants and a partner with their own income all lower your risk. In that situation, three months is a reasonable target to start with.",
+      },
+      { type: "h2", text: "When you need more" },
+      {
+        type: "ul",
+        items: [
+          "**Irregular income**: freelancers and commission-based jobs often aim for six to twelve months.",
+          "**Single income households**, or people supporting family.",
+          "**Specialised jobs** that would take a long time to replace.",
+          "**Living abroad**, where moving home in a hurry can be expensive.",
+        ],
+      },
+      { type: "h2", text: "Where to keep it" },
+      {
+        type: "p",
+        text: "Somewhere safe, separate from your everyday account, and quick to reach. A dedicated savings account works well. The point is access and stability, not returns.",
+      },
+      { type: "h2", text: "Building it without stalling" },
+      {
+        type: "p",
+        text: "Treat it like any other savings goal: pick a monthly amount and a date. If $10,000 feels far away, start with one month of expenses, then grow it. Tracking it as an [objective in Finance](/features#goals) shows the month you'll be fully covered and whether you're on track.",
+      },
+    ],
+  },
+  {
+    slug: "track-all-your-bank-accounts-in-one-place",
+    title: "How to track all your bank accounts in one place",
+    description:
+      "Checking here, savings there, a wallet abroad and some cash. A simple way to see every balance, and one total, without logging into five apps.",
+    date: "2026-10-25",
+    category: "Guide",
+    blocks: [
+      {
+        type: "p",
+        text: "Most people have more accounts than they think: a main bank, a savings account, a digital wallet, maybe an account in another country and some cash. Each has its own app, and none of them shows you the total.",
+      },
+      { type: "h2", text: "Step 1: list every account" },
+      {
+        type: "p",
+        text: "Write down every place you hold money, with its current balance and currency. Include the small ones. A forgotten wallet with $300 in it is still part of your picture.",
+      },
+      { type: "h2", text: "Step 2: keep each balance in its own currency" },
+      {
+        type: "p",
+        text: "Record a euro account in euros and a dollar account in dollars. Convert only when you add them up, so the balances stay exact and the total uses current rates. The [net worth calculator](/tools/net-worth-calculator) does this for a one-off snapshot.",
+      },
+      { type: "h2", text: "Step 3: decide how you'll keep it up to date" },
+      {
+        type: "ul",
+        items: [
+          "**Record movements**: log deposits, withdrawals and transfers as they happen. The balance and its history stay accurate.",
+          "**Update balances**: once a month, set each account to its real balance. Quicker, but you lose the detail in between.",
+        ],
+      },
+      {
+        type: "p",
+        text: "Many people mix the two: record the important movements, and correct the rest monthly.",
+      },
+      { type: "h2", text: "Step 4: treat transfers as transfers" },
+      {
+        type: "p",
+        text: "Moving money from checking to savings isn't spending or income. If you log it as a withdrawal and an unrelated deposit, your monthly figures look busier than they are. Record it as one transfer between two accounts.",
+      },
+      { type: "h2", text: "Step 5: look at the total, not the accounts" },
+      {
+        type: "p",
+        text: "Once everything is in one place, the number to watch is the total and how it changes month to month. That's your net worth. Individual accounts matter less than the direction of the whole.",
+      },
+      {
+        type: "callout",
+        text: "In Finance, you add each account once, record transfers between them in one step, and see one total in the currency you choose, without connecting any bank.",
+      },
+    ],
+  },
+  {
+    slug: "finance-app-without-bank-connection",
+    title: "Finance apps that don't need your bank login: what to look for",
+    description:
+      "Want to track your money without linking your bank account? Here's why some people prefer it, what you give up, and the features that make manual tracking painless.",
+    date: "2026-10-25",
+    category: "Product",
+    blocks: [
+      {
+        type: "p",
+        text: "Linking a bank account to an app is convenient, but not everyone wants to. Some people prefer not to share access to their accounts; others have banks that simply aren't supported. Either way, you can still get a clear picture of your money.",
+      },
+      { type: "h2", text: "Why people choose not to connect" },
+      {
+        type: "ul",
+        items: [
+          "**Privacy**: no third party holds a live connection to your accounts.",
+          "**Coverage**: banks in many countries, and many smaller banks, aren't supported by sync services.",
+          "**Reliability**: there are no broken connections to re-authorise every few weeks.",
+          "**Focus**: you track the numbers that matter instead of hundreds of tiny transactions.",
+        ],
+      },
+      { type: "h2", text: "What you give up" },
+      {
+        type: "p",
+        text: "Honestly: automation. Nothing appears on its own, so you need a light routine, usually a few minutes a week or a month. If you want every purchase categorised automatically, a bank-synced budgeting app suits you better.",
+      },
+      { type: "h2", text: "Features that make manual tracking easy" },
+      {
+        type: "ol",
+        items: [
+          "**Multiple currencies** with automatic conversion, if any of your money is abroad.",
+          "**Transfers between accounts** as one entry, not two.",
+          "**Back-dating**, so you can record things on the day they happened.",
+          "**Recurring income and bills**, so regular items don't need typing every month.",
+          "**Loans to and from people**, which no bank feed shows anyway.",
+          "**Export**, so your data is never locked in.",
+        ],
+      },
+      { type: "h2", text: "Check how the app handles your data" },
+      {
+        type: "p",
+        text: "Even without a bank connection, you're storing sensitive numbers. Look for a clear privacy page that says what's stored, how passwords are protected, and which services are involved. Here's [ours](/privacy).",
+      },
+      {
+        type: "p",
+        text: "Finance was built for exactly this: every account in its own currency, transfers, loans with part-payments, goals with projections, and a cash flow calendar, with no bank connection at any point. See [all features](/features), or compare the trade-offs in [manual tracking vs. bank sync](/blog/manual-tracking-vs-bank-sync).",
+      },
+    ],
+  },
+  {
+    slug: "net-worth-spreadsheet-vs-app",
+    title: "Net worth spreadsheet vs. app: which should you use?",
+    description:
+      "Spreadsheets are free and flexible. Apps are faster and keep history for you. Here's an honest look at both for tracking your net worth.",
+    date: "2026-10-25",
+    category: "Guide",
+    blocks: [
+      {
+        type: "p",
+        text: "Plenty of people track their net worth in a spreadsheet, and it works. The question is whether it keeps working once you have several accounts, a couple of currencies and a few years of history.",
+      },
+      { type: "h2", text: "Where spreadsheets shine" },
+      {
+        type: "ul",
+        items: [
+          "**Free and flexible**: you decide every column and formula.",
+          "**Fully private**: the file is yours.",
+          "**Good for a snapshot**: a quick total on the first of the month.",
+        ],
+      },
+      { type: "h2", text: "Where spreadsheets get painful" },
+      {
+        type: "ul",
+        items: [
+          "**Currencies**: you look up rates by hand, and old rows go stale.",
+          "**History**: charts over time need a new row every month and formulas that don't break.",
+          "**Movements**: transfers, loans and repayments are fiddly to model.",
+          "**Forecasts**: projecting goals or next month's balance means building it yourself.",
+        ],
+      },
+      { type: "h2", text: "Where an app helps" },
+      {
+        type: "p",
+        text: "A dedicated app handles conversion, history and projections for you, and makes the routine faster. The trade-off is that you work within its structure instead of building your own.",
+      },
+      { type: "h2", text: "A middle path" },
+      {
+        type: "p",
+        text: "Start with a snapshot: list everything you own and owe in the [net worth calculator](/tools/net-worth-calculator). If you want to track it over time without maintaining formulas, move it into an app. If you like the control of a spreadsheet, keep it, and use an app's export to back it up.",
+      },
+      {
+        type: "callout",
+        text: "Whichever you pick, the habit matters more than the tool. Check your net worth monthly and compare it with the month before.",
+      },
+      {
+        type: "p",
+        text: "Finance keeps your history automatically, converts currencies at live rates, and exports to CSV whenever you want a spreadsheet copy. [Here's how it works](/how-it-works).",
+      },
+    ],
+  },
+  {
     slug: "how-to-calculate-your-net-worth",
     title: "How to calculate your net worth (and why it's the number to watch)",
     description:
@@ -39,7 +249,7 @@ export const ARTICLES: Article[] = [
       { type: "callout", text: "Net worth = everything you own − everything you owe" },
       {
         type: "p",
-        text: "That's it. The work is in being honest about both sides of the line.",
+        text: "That's it. The work is in being honest about both sides of the line. If you want to try it now, the free [net worth calculator](/tools/net-worth-calculator) adds everything up, in any currency.",
       },
       { type: "h2", text: "What counts as something you own" },
       {
@@ -106,7 +316,7 @@ export const ARTICLES: Article[] = [
       { type: "h2", text: "Convert only when you add things up" },
       {
         type: "p",
-        text: "Pick one **display currency**, usually the one you think in or plan to spend in, and convert to it only when you need a total. That way balances stay exact, and the total is always based on current rates.",
+        text: "Pick one **display currency**, usually the one you think in or plan to spend in, and convert to it only when you need a total. That way balances stay exact, and the total is always based on current rates. You can try it with the [multi-currency net worth calculator](/tools/net-worth-calculator).",
       },
       { type: "h2", text: "Your net worth can move without you" },
       {
@@ -202,7 +412,7 @@ export const ARTICLES: Article[] = [
       { type: "callout", text: "Remaining = target − already saved" },
       {
         type: "p",
-        text: "Say the goal is $13,600 and you've saved $9,248. You have $4,352 to go.",
+        text: "Say the goal is $13,600 and you've saved $9,248. You have $4,352 to go. (Or skip the maths: the [savings goal calculator](/tools/savings-goal-calculator) does it for you.)",
       },
       { type: "h2", text: "If you know how much you can save each month" },
       { type: "callout", text: "Months to go = remaining ÷ monthly amount, rounded up" },

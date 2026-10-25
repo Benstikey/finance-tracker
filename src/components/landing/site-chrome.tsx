@@ -21,6 +21,7 @@ const LINKS = [
   { href: "/features", label: "Features" },
   { href: "/how-it-works", label: "How it works" },
   { href: "/use-cases", label: "Use cases" },
+  { href: "/tools", label: "Free tools" },
   { href: "/blog", label: "Blog" },
 ];
 
@@ -134,6 +135,9 @@ export function SiteFooter() {
           <div className="flex flex-col gap-2">
             <span className="font-medium text-[#0a0a0a]">Learn</span>
             <Link href="/blog" className="hover:text-[#0a0a0a]">Blog</Link>
+            <Link href="/tools/net-worth-calculator" className="hover:text-[#0a0a0a]">Net worth calculator</Link>
+            <Link href="/tools/savings-goal-calculator" className="hover:text-[#0a0a0a]">Savings goal calculator</Link>
+            <Link href="/tools/emergency-fund-calculator" className="hover:text-[#0a0a0a]">Emergency fund calculator</Link>
             <Link href="/#faq" className="hover:text-[#0a0a0a]">FAQ</Link>
           </div>
           <div className="flex flex-col gap-2">

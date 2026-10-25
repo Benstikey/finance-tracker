@@ -121,9 +121,11 @@
   animation-delay: 120ms;
 }
 
+/* No opacity in the entrance: text that starts invisible delays Largest
+   Contentful Paint until the animation ends. Blur and rise still read as an
+   entrance, and the text is painted from the first frame. */
 @keyframes lp-rise {
   from {
-    opacity: 0;
     filter: blur(4px);
     transform: translateY(10px);
   }
@@ -375,6 +377,50 @@
   filter: none;
   translate: 0;
   transition-delay: 60ms;
+}
+
+/* ── Calculators ──────────────────────────────────────────────────────── */
+
+.lp-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-size: 13px;
+  font-weight: 500;
+}
+.lp-input {
+  height: 38px;
+  width: 100%;
+  min-width: 0;
+  padding: 0 12px;
+  border-radius: 10px;
+  background: #fff;
+  box-shadow: inset 0 0 0 1px #0a0a0a1f;
+  color: var(--lp-text);
+  font-size: 14px;
+  font-weight: 400;
+  font-variant-numeric: tabular-nums;
+  outline: none;
+  transition: box-shadow var(--lp-duration) ease;
+}
+.lp-input:focus-visible {
+  box-shadow: inset 0 0 0 1px var(--lp-text), 0 0 0 3px #0a0a0a14;
+}
+.lp-stat {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.lp-stat dt {
+  color: var(--lp-muted);
+  font-size: 12px;
+  font-weight: 500;
+}
+.lp-stat dd {
+  font-size: 24px;
+  font-weight: 600;
+  letter-spacing: -0.6px;
+  font-variant-numeric: tabular-nums;
 }
 
 /* ── Articles ────────────────────────────────────────────────────────── */

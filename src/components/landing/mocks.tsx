@@ -4,7 +4,7 @@
 import { cn } from "@/lib/utils";
 
 const ink = "text-[#0a0a0a]";
-const muted = "text-[#737373]";
+const muted = "text-[#666666]";
 const card =
   "rounded-[10px] bg-white shadow-[0_1px_1.5px_#0000000a,inset_0_0_0_1px_#0a0a0a0e]";
 
@@ -39,8 +39,8 @@ function Kpi({ label, value, change, down }: { label: string; value: string; cha
     <div className={cn(card, "flex flex-col gap-0.5 p-3")}>
       <span className={cn("text-[10px] font-medium", muted)}>{label}</span>
       <span className={cn("text-[15px] font-semibold tracking-tight tabular-nums", ink)}>{value}</span>
-      <span className="flex items-center gap-1 text-[9px] text-[#737373]">
-        <span className={cn("rounded px-1 py-px font-medium", down ? "bg-[#0000000a] text-[#737373]" : "bg-[#0a0a0a] text-white")}>
+      <span className="flex items-center gap-1 text-[9px] text-[#666666]">
+        <span className={cn("rounded px-1 py-px font-medium", down ? "bg-[#0000000a] text-[#595959]" : "bg-[#0a0a0a] text-white")}>
           {change}
         </span>
         vs previous 30d
@@ -68,7 +68,7 @@ export function BrowserFrame({
             <span key={i} className="size-2.5 rounded-full bg-[#0000001a]" />
           ))}
         </span>
-        <span className="min-w-0 truncate rounded-full bg-[#f7f7f9] px-3 py-1 text-center text-[11px] text-[#0000004d] sm:min-w-56">
+        <span className="min-w-0 truncate rounded-full bg-[#f7f7f9] px-3 py-1 text-center text-[11px] text-[#666666] sm:min-w-56">
           {url}
         </span>
         <span />

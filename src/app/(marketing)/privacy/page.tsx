@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { BreadcrumbLd } from "@/components/landing/breadcrumb-ld";
 import Link from "next/link";
 import { Ban, Download, EyeOff, Lock, Trash2, Unplug } from "lucide-react";
 
@@ -77,6 +78,7 @@ function SectionTitle({ id, children }: { id: string; children: React.ReactNode 
 export default function PrivacyPage() {
   return (
     <>
+      <BreadcrumbLd name="Privacy" path="/privacy" />
       <section className="mx-auto flex max-w-[1008px] flex-col items-center pt-16 pb-16 text-center min-[761px]:pt-24 min-[761px]:pb-20">
         <div className="lp-hero__copy flex max-w-[600px] flex-col items-center">
           <h1 className="text-[34px] leading-[40px] font-medium tracking-[-1px] text-balance min-[761px]:text-[46px] min-[761px]:leading-[52px] min-[761px]:tracking-[-1.4px]">
