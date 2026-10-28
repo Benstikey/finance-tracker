@@ -57,6 +57,8 @@ export default async function ArticlePage({ params }: { params: Promise<{ slug: 
         description: article.description,
         datePublished: article.date,
         dateModified: article.date,
+        articleSection: article.category,
+        inLanguage: "en",
         url,
         mainEntityOfPage: url,
         author: { "@type": "Organization", name: SITE_NAME, url: SITE_URL },
@@ -73,7 +75,12 @@ export default async function ArticlePage({ params }: { params: Promise<{ slug: 
     ],
   };
 
-  const more = ARTICLES.filter((a) => a.slug !== article.slug).slice(0, 2);
+  // Same category first, so readers (and crawlers) move between related guides.
+  const others = ARTICLES.filter((a) => a.slug !== article.slug);
+  const more = [
+    ...others.filter((a) => a.category === article.category),
+    ...others.filter((a) => a.category !== article.category),
+  ].slice(0, 3);
 
   return (
     <>
